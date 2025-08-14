@@ -59,7 +59,7 @@ export class HumanController implements Controller {
             if (player.swing === 0) {
                 // Simplified: Set a default spin and power
                 player.spin.set(0.5, 0.5);
-                player.swing(8); // Corresponds to m_pow = 8 in C++
+                player.startSwing(8); // Corresponds to m_pow = 8 in C++
             }
         }
 
