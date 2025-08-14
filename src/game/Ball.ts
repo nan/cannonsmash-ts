@@ -13,6 +13,7 @@ export class Ball {
     public velocity: Vector3;
     public spin: Vector2;
     public status: number;
+    public lastHitBy: any = null; // Using any to avoid circular deps for now
 
     // public view: BallView | null = null;
 
@@ -70,8 +71,9 @@ export class Ball {
         return true;
     }
 
-    public hit(v: Vector3, spin: Vector2/*, player: Player*/): boolean {
+    public hit(v: Vector3, spin: Vector2, player: any): boolean {
         // Sound.TheSound().Play(SOUND_RACKET, this.position);
+        this.lastHitBy = player;
         this.spin.copy(spin);
         this.velocity.copy(v);
 
@@ -178,7 +180,7 @@ export class Ball {
 
     public ballDead() {
         if (this.status >= 0) {
-            // PlayGame.getInstance().changeScore();
+            PlayGame.getInstance().changeScore(this);
             this.status = -1;
         }
     }

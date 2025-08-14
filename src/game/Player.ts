@@ -117,7 +117,7 @@ export class Player {
         Player.swingTypes.set(CONST.SWING_DRIVE, { type: CONST.SWING_DRIVE, toss: -1, backswing: 10, hitStart: 20, hitEnd: 20, swingEnd: 30, swingLength: 80, hitX: 0.3, hitY: 0.0, tossV: 0.0 });
         Player.swingTypes.set(CONST.SWING_CUT, { type: CONST.SWING_CUT, toss: -1, backswing: 10, hitStart: 20, hitEnd: 20, swingEnd: 30, swingLength: 50, hitX: 0.3, hitY: 0.0, tossV: 0.0 });
         Player.swingTypes.set(CONST.SWING_BLOCK, { type: CONST.SWING_BLOCK, toss: -1, backswing: 5, hitStart: 10, hitEnd: 30, swingEnd: 40, swingLength: 40, hitX: 0.3, hitY: 0.0, tossV: 0.0 });
-        Player.swingTypes.set(CONST.SERVE_NORMAL, { type: CONST.SERVE_NORMAL, toss: 1, backswing: 10, hitStart: 20, hitEnd: 20, swingEnd: 30, swingLength: 50, hitX: 0.3, hitY: 0.0, tossV: 2.5 });
+        Player.swingTypes.set(CONST.SERVE_NORMAL, { type: CONST.SERVE_NORMAL, toss: 1, backswing: 10, hitStart: 20, hitEnd: 20, swingEnd: 30, swingLength: 50, hitX: 0.3, hitY: 0.0, tossV: 3.5 }); // Increased toss height
         Player.swingTypes.set(CONST.SERVE_POKE, { type: CONST.SERVE_POKE, toss: 20, backswing: 85, hitStart: 100, hitEnd: 100, swingEnd: 115, swingLength: 200, hitX: 0.0, hitY: 0.0, tossV: 4.0 });
         Player.swingTypes.set(CONST.SERVE_SIDESPIN1, { type: CONST.SERVE_SIDESPIN1, toss: 20, backswing: 60, hitStart: 80, hitEnd: 80, swingEnd: 95, swingLength: 150, hitX: 0.0, hitY: 0.0, tossV: 3.2 });
         Player.swingTypes.set(CONST.SERVE_SIDESPIN2, { type: CONST.SERVE_SIDESPIN2, toss: 20, backswing: 80, hitStart: 100, hitEnd: 100, swingEnd: 120, swingLength: 200, hitX: 0.0, hitY: 0.0, tossV: 4.0 });
@@ -188,10 +188,13 @@ export class Player {
         const v = new Vector3();
 
         if (this.canServe(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
-            // Simplified Serve Hit
-            v.set(0, 15 * this.side, 3); // Hit it forward and slightly up
+            // Simplified Serve Hit - aim towards the player's target
+            const targetPos = new Vector3(this.target.x, this.target.y, 0);
+            v.subVectors(targetPos, ball.position).normalize().multiplyScalar(18); // Aim and set speed
+            v.z = 2; // Give it some upward velocity, overriding the Z from normalization
+
             this.spin.set(0, 0.5); // Add some topspin
-            ball.hit(v, this.spin);
+            ball.hit(v, this.spin, this);
             this.swingError = CONST.SWING_PERFECT;
         }
         else if (this.canHitBall(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {

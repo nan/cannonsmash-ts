@@ -3,6 +3,7 @@ import { GameView } from './game/views/GameView';
 import { FieldView } from './game/views/FieldView';
 import { BallView } from './game/views/BallView';
 import { PlayerView } from './game/views/PlayerView';
+import { ScoreView } from './game/views/ScoreView';
 import { PlayGame } from './game/PlayGame';
 
 class Game {
@@ -11,6 +12,7 @@ class Game {
     private ballView: BallView;
     private player1View: PlayerView;
     private player2View: PlayerView;
+    private scoreView: ScoreView;
 
     private playGame: PlayGame;
 
@@ -39,6 +41,8 @@ class Game {
         this.player2View = new PlayerView(this.playGame.player2);
         this.player2View.addToScene(this.gameView.scene);
 
+        this.scoreView = new ScoreView();
+
         this.setupCamera();
     }
 
@@ -64,6 +68,7 @@ class Game {
         this.ballView.update();
         this.player1View.update();
         this.player2View.update();
+        this.scoreView.update(this.playGame.score1, this.playGame.score2);
 
         // Render scene
         this.gameView.update();

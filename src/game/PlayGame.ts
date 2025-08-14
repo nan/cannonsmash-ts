@@ -11,6 +11,8 @@ export class PlayGame {
     public ball: Ball;
 
     public servingPlayer: Player;
+    public score1: number = 0;
+    public score2: number = 0;
 
     private constructor() {
         this.player1 = new Player(1);
@@ -38,6 +40,28 @@ export class PlayGame {
         this.player1.move(this.ball);
         this.player2.move(this.ball);
         this.ball.move();
+    }
+
+    public changeScore(ball: Ball) {
+        if (ball.lastHitBy === this.player1) {
+            this.score2++;
+        } else if (ball.lastHitBy === this.player2) {
+            this.score1++;
+        } else {
+            // If ball goes out of bounds without being hit (e.g., serve fault)
+            // The point goes to the non-serving player
+            if (this.servingPlayer === this.player1) {
+                this.score2++;
+            } else {
+                this.score1++;
+            }
+        }
+        console.log(`Score: ${this.score1} - ${this.score2}`);
+
+        // Switch server for the next point
+        this.servingPlayer = (this.servingPlayer === this.player1) ? this.player2 : this.player1;
+
+        this.resetBall();
     }
 
     public resetBall() {
