@@ -204,11 +204,9 @@ export class Player {
         const vz = k * ( (delta.z + g * time / k) / (1 - Math.exp(-k * time)) - (g / (k * k)) );
 
         if (!isFinite(vx) || !isFinite(vy) || !isFinite(vz)) {
-            console.error("Trajectory calculation resulted in non-finite numbers.");
             return new Vector3(0, 0, 0);
         }
 
-        console.log(`Calculated V0 for time=${time.toFixed(3)}s, delta=(${delta.x.toFixed(2)}, ${delta.y.toFixed(2)}, ${delta.z.toFixed(2)}): V0=(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)})`);
         return new Vector3(vx, vy, vz);
     }
 
@@ -219,14 +217,22 @@ export class Player {
         }
 
         this.spin.set(0, 0.5); // Default topspin
-        let timeOfFlight = 0.2; // Default time of flight for rally shots
+        let timeOfFlight;
+        let target;
 
         if (this.canServe(ball)) {
+            // For serves, we need to hit the ball so it bounces on our side first.
+            // We'll aim for a short target on our side of the table.
             this.spin.set(0, 0.5);
-            timeOfFlight = 0.35; // Slower shot (longer time of flight) for serves
+            timeOfFlight = 0.15; // Short time of flight for a short, low shot
+            target = new Vector3(this.target.x * 0.5, this.side * -0.7, CONST.TABLEHEIGHT);
+        } else {
+            // For rallies, aim for the target set by the controller.
+            timeOfFlight = 0.2; // Default time of flight for rally shots
+            target = this.target;
         }
 
-        const v = this.calculateVelocityForTarget(ball.position, this.target, timeOfFlight, this.spin.y);
+        const v = this.calculateVelocityForTarget(ball.position, target, timeOfFlight, this.spin.y);
 
         if (v.length() > 0) {
             ball.hit(v, this.spin, this);
