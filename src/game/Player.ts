@@ -184,35 +184,42 @@ export class Player {
         return true;
     }
 
-    public hitBall(ball: Ball): boolean {
-        const v = new Vector3();
+    private calculateVelocityForTarget(startPos: Vector3, targetPos: Vector3, horizontalSpeed: number, spinY: number): Vector3 {
+        const g = CONST.GRAVITY(spinY);
+        const delta = new Vector3().subVectors(targetPos, startPos);
+        const deltaXZ = new Vector2(delta.x, delta.y);
 
-        if (this.canServe(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
-            // Serve Hit - aim towards the player's target
-            const targetPos = this.target;
-            // The power was too high, causing the ball to fly out of bounds. Reducing from 10 to 8.
-            v.subVectors(targetPos, ball.position).normalize().multiplyScalar(8); // Aim and set speed
-            // Lowering the launch angle to make the serve less long.
-            v.z = 1.5; // Give it some upward velocity, overriding the Z from normalization
+        const time = deltaXZ.length() / horizontalSpeed;
 
-            this.spin.set(0, 0.5); // Add some topspin
-            ball.hit(v, this.spin, this);
-            this.swingError = CONST.SWING_PERFECT;
+        if (time === 0) {
+            return new Vector3(0, 0, 0); // Avoid division by zero
         }
-        else if (this.canHitBall(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
-            // Rally Hit - aim towards the player's target, which should be updated by the controller
-            const targetPos = this.target;
-            v.subVectors(targetPos, ball.position);
 
-            // To create a realistic arc, we set the Z value before normalizing.
-            // The height of the arc is proportional to the horizontal distance to the target.
-            const dist2D = new Vector2(v.x, v.y).length();
-            v.z = dist2D * 0.2; // The 0.2 factor is a magic number for tuning the arc height
+        const vz = (delta.z - 0.5 * g * time * time) / time;
 
-            // Use a consistent power for rally shots to make it more predictable
-            const power = 22;
-            v.normalize().multiplyScalar(power);
+        const vx = delta.x / time;
+        const vy = delta.y / time;
 
+        return new Vector3(vx, vy, vz);
+    }
+
+    public hitBall(ball: Ball): boolean {
+        if (Math.abs(this.position.x - ball.position.x) > 0.8) {
+            this.swingError = CONST.SWING_MISS;
+            return false;
+        }
+
+        this.spin.set(0, 0.5); // Default topspin
+        let horizontalSpeed = 15; // Default horizontal speed for rally shots
+
+        if (this.canServe(ball)) {
+            this.spin.set(0, 0.5);
+            horizontalSpeed = 10; // Slower speed for serves
+        }
+
+        const v = this.calculateVelocityForTarget(ball.position, this.target, horizontalSpeed, this.spin.y);
+
+        if (v.length() > 0) {
             ball.hit(v, this.spin, this);
             this.swingError = CONST.SWING_PERFECT;
         } else {
