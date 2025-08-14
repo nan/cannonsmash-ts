@@ -228,7 +228,16 @@ export class Player {
         return (ball.status === 6 && this.side === 1) || (ball.status === 7 && this.side === -1);
     }
 
-    public startSwing(power: number): boolean {
+    public startSwing(power: number, ball: Ball): boolean {
+        // If we are waiting to serve, this action should be a toss.
+        if (ball.status === 8) {
+            const swingTypeData = Player.swingTypes.get(this.swingType);
+            const tossPower = swingTypeData ? swingTypeData.tossV : 2.5;
+            ball.toss(tossPower, this);
+            this.swing = 1; // Start the swing motion as well
+            return true;
+        }
+
         if (this.swing > 0) return false; // Already swinging
 
         const currentSwing = Player.swingTypes.get(this.swingType);

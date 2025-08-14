@@ -10,9 +10,9 @@ export class HumanController implements Controller {
         this.input = InputHandler.getInstance();
     }
 
-    public update(player: Player, _ball: unknown): void {
+    public update(player: Player, ball: Ball): void {
         this.handleMovement(player);
-        this.handleActions(player);
+        this.handleActions(player, ball);
     }
 
     private handleMovement(player: Player): void {
@@ -47,7 +47,7 @@ export class HumanController implements Controller {
         }
     }
 
-    private handleActions(player: Player): void {
+    private handleActions(player: Player, ball: Ball): void {
         // Left mouse button for a basic swing
         if (this.input.isMouseButtonPressed(0)) {
             // This is a simplified action. The original game has a complex system
@@ -59,7 +59,7 @@ export class HumanController implements Controller {
             if (player.swing === 0) {
                 // Simplified: Set a default spin and power
                 player.spin.set(0.5, 0.5);
-                player.startSwing(8); // Corresponds to m_pow = 8 in C++
+                player.startSwing(8, ball); // Corresponds to m_pow = 8 in C++
             }
         }
 

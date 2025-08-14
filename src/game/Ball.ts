@@ -84,14 +84,15 @@ export class Ball {
         return true;
     }
 
-    public toss(/*player: Player,*/ power: number): boolean {
+    public toss(power: number, player: Player): boolean {
         this.velocity.z = power;
         this.spin.set(0, 0);
 
-        // Status update logic depends on player side
-        // if (player.getSide() > 0) this.status = 6;
-        // else this.status = 7;
-        this.status = 6; // Assume one side for now
+        if (player.side > 0) {
+            this.status = 6;
+        } else {
+            this.status = 7;
+        }
 
         return true;
     }
