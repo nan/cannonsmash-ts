@@ -65,9 +65,6 @@ class Game {
         this.player1View.update();
         this.player2View.update();
 
-        // Log for debugging
-        console.log(`Ball V.Z: ${this.playGame.ball.velocity.z.toFixed(4)}, Ball Z: ${this.playGame.ball.position.z.toFixed(4)}, Status: ${this.playGame.ball.status}, Swing: ${this.playGame.player1.swing}`);
-
         // Render scene
         this.gameView.update();
     }

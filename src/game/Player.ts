@@ -185,22 +185,24 @@ export class Player {
     }
 
     public hitBall(ball: Ball): boolean {
-        // Simplified version of the complex hit logic in C++
-        if (this.canHitBall(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
-            const target = this.target.clone();
-            const v = new Vector3();
+        const v = new Vector3();
 
-            // Simplified level and velocity calculation
-            const level = (this.power / 20.0) + 0.5;
-            const maxVy = this.swingSide ? this.MAX_FOREHAND_SPEED[this.swingType] : this.MAX_BACKHAND_SPEED[this.swingType];
-
-            ball.targetToV(target, level, this.spin, v, 0.1, maxVy);
-
-            this.swingError = CONST.SWING_PERFECT; // Assume perfect for now
-            this.afterSwing = 50; // Some penalty
-            this.addStatus(-this.afterSwing * 2);
-
+        if (this.canServe(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
+            // Simplified Serve Hit
+            v.set(0, 15 * this.side, 3); // Hit it forward and slightly up
+            this.spin.set(0, 0.5); // Add some topspin
             ball.hit(v, this.spin);
+            this.swingError = CONST.SWING_PERFECT;
+        }
+        else if (this.canHitBall(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
+            // Simplified Rally Hit
+            v.set(
+                (Math.random() - 0.5) * 5, // Some random X direction
+                15 * this.side,
+                4 + Math.random() * 2 // Some upward velocity
+            );
+            ball.hit(v, this.spin);
+            this.swingError = CONST.SWING_PERFECT;
         } else {
             this.swingError = CONST.SWING_MISS;
         }
@@ -232,7 +234,7 @@ export class Player {
         // If we are waiting to serve, this action should be a toss.
         if (ball.status === 8) {
             const swingTypeData = Player.swingTypes.get(this.swingType);
-            const tossPower = 10.0; // For debugging
+            const tossPower = swingTypeData ? swingTypeData.tossV : 2.5;
             ball.toss(tossPower, this);
             this.swing = 1; // Start the swing motion as well
             return true;

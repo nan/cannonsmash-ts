@@ -142,14 +142,18 @@ export class Ball {
         if (tableT < netT) { // Bounce on table
             // Sound.TheSound().Play(SOUND_TABLE, this.position);
             const tableY = oldPosition.y + this.velocity.y * tableT;
-            if (tableY < 0) { // My side
-                if (this.status === 2) this.status = 3;
-                else if (this.status === 4) this.status = 0;
-                else this.ballDead();
-            } else { // Opponent side
-                if (this.status === 0) this.status = 1;
-                else if (this.status === 5) this.status = 2;
-                else this.ballDead();
+            if (tableY < 0) { // My side (player 1's side)
+                switch (this.status) {
+                    case 2: this.status = 3; break; // Rally ball from P2, now hittable by P1
+                    case 4: this.status = 0; break; // P1's serve, now travelling to P2
+                    default: this.ballDead();
+                }
+            } else { // Opponent side (player 2's side)
+                switch (this.status) {
+                    case 0: this.status = 1; break; // Rally ball from P1, now hittable by P2
+                    case 5: this.status = 2; break; // P2's serve, now travelling to P1
+                    default: this.ballDead();
+                }
             }
 
             // In the C++ code, there's a lot of complex recalculation of position and velocity
