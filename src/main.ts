@@ -6,6 +6,7 @@ import { BallView } from './game/views/BallView';
 import { Player } from './game/Player';
 import { PlayerView } from './game/views/PlayerView';
 import * as CONST from './game/constants';
+import { HumanController } from './game/controllers/HumanController';
 
 class Game {
     private gameView: GameView;
@@ -35,6 +36,7 @@ class Game {
         this.ballView.addToScene(this.gameView.scene);
 
         this.player1 = new Player(1);
+        this.player1.controller = new HumanController();
         this.player1View = new PlayerView(this.player1);
         this.player1View.addToScene(this.gameView.scene);
 

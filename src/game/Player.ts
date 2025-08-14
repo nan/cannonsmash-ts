@@ -1,11 +1,7 @@
 import { Vector2, Vector3 } from 'three';
 import * as CONST from './constants';
 import { Ball } from './Ball';
-
-// Placeholder for the Controller interface
-export interface Controller {
-    move(/*...keys, mouse, etc...*/): void;
-}
+import { Controller } from './controllers/Controller';
 
 // A swing type definition, ported from the C struct
 export interface SwingType {
@@ -174,7 +170,7 @@ export class Player {
         }
 
         // Controller logic would go here
-        this.controller?.move(/*...*/);
+        this.controller?.update(this);
 
         // Status calculations
         if (this.velocity.length() > this.RUNSPEED) this.addStatus(this.RUNPENALTY);
@@ -230,6 +226,36 @@ export class Player {
 
     public canServe(ball: Ball): boolean {
         return (ball.status === 6 && this.side === 1) || (ball.status === 7 && this.side === -1);
+    }
+
+    public swing(power: number): boolean {
+        if (this.swing > 0) return false; // Already swinging
+
+        const currentSwing = Player.swingTypes.get(this.swingType);
+        if (!currentSwing) return false;
+
+        this.swing = 1; // Start of backswing
+        this.power = power;
+
+        // In C++, SwingType is determined here based on ball position.
+        // For now, we assume a basic SWING_NORMAL.
+        this.swingType = CONST.SWING_NORMAL;
+        this.swingSide = true; // Assume forehand
+
+        return true;
+    }
+
+    public changeServeType() {
+        // Simplified logic from C++
+        if (this.swingType < CONST.SERVE_MIN) {
+            this.swingType = CONST.SERVE_MIN;
+        } else {
+            this.swingType++;
+        }
+
+        if (this.swingType > CONST.SERVE_MAX) {
+            this.swingType = CONST.SERVE_MIN;
+        }
     }
 }
 
