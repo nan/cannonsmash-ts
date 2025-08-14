@@ -200,9 +200,7 @@ export class Player {
         const vx = delta.x / time;
         const vy = delta.y / time;
 
-        const resultV = new Vector3(vx, vy, vz);
-        console.log(`Calculated Velocity: x=${resultV.x.toFixed(2)}, y=${resultV.y.toFixed(2)}, z=${resultV.z.toFixed(2)}`);
-        return resultV;
+        return new Vector3(vx, vy, vz);
     }
 
     public hitBall(ball: Ball): boolean {
@@ -216,7 +214,8 @@ export class Player {
 
         if (this.canServe(ball)) {
             this.spin.set(0, 0.5);
-            horizontalSpeed = 10; // Slower speed for serves
+            // Increased from 10 to 12 to compensate for air resistance.
+            horizontalSpeed = 12; // Slower speed for serves
         }
 
         const v = this.calculateVelocityForTarget(ball.position, this.target, horizontalSpeed, this.spin.y);
