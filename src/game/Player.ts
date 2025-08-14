@@ -212,13 +212,17 @@ export class Player {
         this.spin.set(0, 0.5); // Default topspin
         let horizontalSpeed = 15; // Default horizontal speed for rally shots
 
+        let target = this.target;
         if (this.canServe(ball)) {
             this.spin.set(0, 0.5);
             // Increased from 10 to 12 to compensate for air resistance.
             horizontalSpeed = 12; // Slower speed for serves
+            // Raise the target slightly to ensure the ball clears the net.
+            target = this.target.clone();
+            target.z += 0.1;
         }
 
-        const v = this.calculateVelocityForTarget(ball.position, this.target, horizontalSpeed, this.spin.y);
+        const v = this.calculateVelocityForTarget(ball.position, target, horizontalSpeed, this.spin.y);
 
         if (v.length() > 0) {
             ball.hit(v, this.spin, this);
