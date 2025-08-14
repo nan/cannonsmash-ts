@@ -1,4 +1,4 @@
-import { Controller } from './Controller';
+import type { Controller } from './Controller';
 import { InputHandler } from './InputHandler';
 import { Player } from '../Player';
 import { Vector2 } from 'three';

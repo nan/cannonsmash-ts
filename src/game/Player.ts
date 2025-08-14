@@ -1,7 +1,7 @@
 import { Vector2, Vector3 } from 'three';
 import * as CONST from './constants';
 import { Ball } from './Ball';
-import { Controller } from './controllers/Controller';
+import type { Controller } from './controllers/Controller';
 
 // A swing type definition, ported from the C struct
 export interface SwingType {
