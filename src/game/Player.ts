@@ -184,21 +184,28 @@ export class Player {
         return true;
     }
 
-    private calculateVelocityForTarget(startPos: Vector3, targetPos: Vector3, horizontalSpeed: number, spinY: number): Vector3 {
+    private calculateVelocityForTarget(startPos: Vector3, targetPos: Vector3, time: number, spinY: number): Vector3 {
         const g = CONST.GRAVITY(spinY);
+        const k = CONST.PHY;
         const delta = new Vector3().subVectors(targetPos, startPos);
-        const deltaXZ = new Vector2(delta.x, delta.y);
 
-        const time = deltaXZ.length() / horizontalSpeed;
+        // This calculation is based on the physics equations in Ball.ts, including air resistance.
+        // It solves for the initial velocity (v0) required to travel a delta distance in a given time.
 
-        if (time === 0) {
-            return new Vector3(0, 0, 0); // Avoid division by zero
+        // Horizontal velocity
+        // delta.x = (v0x/k) * (1 - exp(-k*t))  =>  v0x = (delta.x * k) / (1 - exp(-k*t))
+        const commonFactorH = k / (1 - Math.exp(-k * time));
+        const vx = delta.x * commonFactorH;
+        const vy = delta.y * commonFactorH;
+
+        // Vertical velocity
+        // delta.z = (v0z/k + g/(k^2)) * (1 - exp(-k*t)) - (g/k)*t
+        // => v0z = k * [ (delta.z + (g/k)*t) / (1 - exp(-k*t)) - g/(k^2) ]
+        const vz = k * ( (delta.z + g * time / k) / (1 - Math.exp(-k * time)) - (g / (k * k)) );
+
+        if (!isFinite(vx) || !isFinite(vy) || !isFinite(vz)) {
+            return new Vector3(0, 0, 0);
         }
-
-        const vz = (delta.z - 0.5 * g * time * time) / time;
-
-        const vx = delta.x / time;
-        const vy = delta.y / time;
 
         return new Vector3(vx, vy, vz);
     }
@@ -210,19 +217,14 @@ export class Player {
         }
 
         this.spin.set(0, 0.5); // Default topspin
-        let horizontalSpeed = 15; // Default horizontal speed for rally shots
+        let timeOfFlight = 0.2; // Default time of flight for rally shots
 
-        let target = this.target;
         if (this.canServe(ball)) {
             this.spin.set(0, 0.5);
-            // Increased from 10 to 12 to compensate for air resistance.
-            horizontalSpeed = 12; // Slower speed for serves
-            // Raise the target slightly to ensure the ball clears the net.
-            target = this.target.clone();
-            target.z += 0.1;
+            timeOfFlight = 0.35; // Slower shot (longer time of flight) for serves
         }
 
-        const v = this.calculateVelocityForTarget(ball.position, target, horizontalSpeed, this.spin.y);
+        const v = this.calculateVelocityForTarget(ball.position, this.target, timeOfFlight, this.spin.y);
 
         if (v.length() > 0) {
             ball.hit(v, this.spin, this);
