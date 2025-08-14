@@ -30,8 +30,7 @@ class Game {
         this.fieldView.addToScene(this.gameView.scene);
 
         this.ball = new Ball();
-        // Set ball high above the table to make it visible for debugging
-        this.ball.position.set(0, 0, 3);
+        this.ball.position.set(0, 0, 1.5); // Start high to be visible
         this.ballView = new BallView(this.ball);
         this.ballView.addToScene(this.gameView.scene);
 
@@ -52,8 +51,10 @@ class Game {
     }
 
     public start() {
-        // Set a valid status for the ball so it moves, but don't toss it
-        this.ball.status = 0;
+        // A simple serve to get the ball moving
+        this.ball.status = 6; // Toss status for player 1
+        this.player1.swingType = CONST.SERVE_NORMAL;
+        this.ball.toss(2.5);
 
         this.animate();
     }
@@ -70,9 +71,6 @@ class Game {
         this.ballView.update();
         this.player1View.update();
         this.player2View.update();
-
-        // Log ball's Z position for debugging
-        console.log(`Ball Z: ${this.ball.position.z}`);
 
         // Render scene
         this.gameView.update();
