@@ -31,7 +31,7 @@ class Game {
         this.fieldView.addToScene(this.gameView.scene);
 
         this.ball = new Ball();
-        this.ball.position.set(0, 0, 1.5); // Start high to be visible
+        this.ball.position.set(0, -1.0, 1.5); // Start high and in front of player
         this.ballView = new BallView(this.ball);
         this.ballView.addToScene(this.gameView.scene);
 
