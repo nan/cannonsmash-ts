@@ -200,7 +200,9 @@ export class Player {
         const vx = delta.x / time;
         const vy = delta.y / time;
 
-        return new Vector3(vx, vy, vz);
+        const resultV = new Vector3(vx, vy, vz);
+        console.log(`Calculated Velocity: x=${resultV.x.toFixed(2)}, y=${resultV.y.toFixed(2)}, z=${resultV.z.toFixed(2)}`);
+        return resultV;
     }
 
     public hitBall(ball: Ball): boolean {
