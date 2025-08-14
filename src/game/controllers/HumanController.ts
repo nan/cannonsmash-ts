@@ -10,7 +10,7 @@ export class HumanController implements Controller {
         this.input = InputHandler.getInstance();
     }
 
-    public update(player: Player): void {
+    public update(player: Player, _ball: unknown): void {
         this.handleMovement(player);
         this.handleActions(player);
     }

@@ -1,5 +1,6 @@
 import { Vector2, Vector3 } from 'three';
 import * as CONST from './constants';
+import { PlayGame } from './PlayGame';
 // import { Player } from './Player'; // To be created
 // import { BaseView } from './views/BaseView'; // To be created
 // import { BallView } from './views/BallView'; // To be created
@@ -42,8 +43,8 @@ export class Ball {
             this.status--;
         }
         if (this.status < -100 || this.status === 8) {
-            // return this.reset();
-            return false; // Reset logic depends on other classes
+            this.reset();
+            return false; // No more movement this frame
         }
 
         const rot = oldSpin.x / CONST.PHY - oldSpin.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
@@ -172,9 +173,13 @@ export class Ball {
 
     public ballDead() {
         if (this.status >= 0) {
-            // Logic for changing score depends on other classes
-            // ((PlayGame *)Control::TheControl())->ChangeScore();
+            // PlayGame.getInstance().changeScore();
             this.status = -1;
         }
+    }
+
+    public reset(): boolean {
+        PlayGame.getInstance().resetBall();
+        return true;
     }
 }

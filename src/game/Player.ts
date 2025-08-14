@@ -170,7 +170,7 @@ export class Player {
         }
 
         // Controller logic would go here
-        this.controller?.update(this);
+        this.controller?.update(this, ball);
 
         // Status calculations
         if (this.velocity.length() > this.RUNSPEED) this.addStatus(this.RUNPENALTY);
