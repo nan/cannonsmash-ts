@@ -232,7 +232,7 @@ export class Player {
         // If we are waiting to serve, this action should be a toss.
         if (ball.status === 8) {
             const swingTypeData = Player.swingTypes.get(this.swingType);
-            const tossPower = swingTypeData ? swingTypeData.tossV : 2.5;
+            const tossPower = 10.0; // For debugging
             ball.toss(tossPower, this);
             this.swing = 1; // Start the swing motion as well
             return true;
