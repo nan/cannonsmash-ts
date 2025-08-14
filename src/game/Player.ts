@@ -190,9 +190,10 @@ export class Player {
         if (this.canServe(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
             // Serve Hit - aim towards the player's target
             const targetPos = this.target;
-            // The power was too high, causing the ball to fly out of bounds. Reducing from 18 to 10.
-            v.subVectors(targetPos, ball.position).normalize().multiplyScalar(10); // Aim and set speed
-            v.z = 2; // Give it some upward velocity, overriding the Z from normalization
+            // The power was too high, causing the ball to fly out of bounds. Reducing from 10 to 8.
+            v.subVectors(targetPos, ball.position).normalize().multiplyScalar(8); // Aim and set speed
+            // Lowering the launch angle to make the serve less long.
+            v.z = 1.5; // Give it some upward velocity, overriding the Z from normalization
 
             this.spin.set(0, 0.5); // Add some topspin
             ball.hit(v, this.spin, this);
