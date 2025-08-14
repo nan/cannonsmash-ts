@@ -35,7 +35,7 @@ export class Player {
     public afterSwing: number;
     public swingError: number;
 
-    public target: Vector2;
+    public target: Vector3;
     public eye: Vector3;
     public lookAt: Vector3;
 
@@ -88,7 +88,7 @@ export class Player {
         this.swingSide = true;
         this.swingError = CONST.SWING_PERFECT;
 
-        this.target = new Vector2(0.0, CONST.TABLELENGTH / 16 * 5);
+        this.target = new Vector3(0.0, CONST.TABLELENGTH / 16 * 5, CONST.TABLEHEIGHT);
         if (side < 0) {
             this.target.y = -this.target.y;
         }
@@ -188,8 +188,8 @@ export class Player {
         const v = new Vector3();
 
         if (this.canServe(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
-            // Simplified Serve Hit - aim towards the player's target
-            const targetPos = new Vector3(this.target.x, this.target.y, 0);
+            // Serve Hit - aim towards the player's target
+            const targetPos = this.target;
             v.subVectors(targetPos, ball.position).normalize().multiplyScalar(18); // Aim and set speed
             v.z = 2; // Give it some upward velocity, overriding the Z from normalization
 
@@ -198,13 +198,20 @@ export class Player {
             this.swingError = CONST.SWING_PERFECT;
         }
         else if (this.canHitBall(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
-            // Simplified Rally Hit
-            v.set(
-                (Math.random() - 0.5) * 5, // Some random X direction
-                15 * this.side,
-                4 + Math.random() * 2 // Some upward velocity
-            );
-            ball.hit(v, this.spin);
+            // Rally Hit - aim towards the player's target, which should be updated by the controller
+            const targetPos = this.target;
+            v.subVectors(targetPos, ball.position);
+
+            // To create a realistic arc, we set the Z value before normalizing.
+            // The height of the arc is proportional to the horizontal distance to the target.
+            const dist2D = new Vector2(v.x, v.y).length();
+            v.z = dist2D * 0.2; // The 0.2 factor is a magic number for tuning the arc height
+
+            // Use a consistent power for rally shots to make it more predictable
+            const power = 22;
+            v.normalize().multiplyScalar(power);
+
+            ball.hit(v, this.spin, this);
             this.swingError = CONST.SWING_PERFECT;
         } else {
             this.swingError = CONST.SWING_MISS;
