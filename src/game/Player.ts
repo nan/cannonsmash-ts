@@ -232,10 +232,8 @@ export class Player {
             ball.hit(v, this.spin, this);
             this.swingError = CONST.SWING_PERFECT;
         } else {
-            // If calculation fails, use a fallback
-            v = new Vector3(this.target.x, this.side * 10, 2);
-            ball.hit(v, this.spin, this);
-            this.swingError = CONST.SWING_ERROR;
+            console.error("Failed to calculate a valid hit velocity.");
+            this.swingError = CONST.SWING_MISS;
         }
 
         this.spin.set(0, 0);
@@ -247,35 +245,44 @@ export class Player {
         const startPos = ball.position.clone();
         startPos.z = 1.4; // Assume a consistent hitting height for simulation
 
-        // Expanded search space for finding a valid serve
-        for (let vy = 2.0; vy < 10.0; vy += 0.5) { // Forward velocity
-            for (let vz = 0.5; vz < 8.0; vz += 0.5) { // Upward velocity
-                const initialVelocity = new Vector3(this.target.x * 0.4, this.side * vy, vz);
-                tempBall.warp(startPos, initialVelocity, this.spin, 6);
+        const opponentSide = -this.side;
+        // Define multiple targets on the opponent's side to increase chances of finding a valid serve
+        const targets = [
+            this.target, // The player's actual target
+            new Vector3(0, opponentSide * 0.7, CONST.TABLEHEIGHT), // Center
+            new Vector3(CONST.TABLEWIDTH / 4, opponentSide * 0.5, CONST.TABLEHEIGHT), // Right
+            new Vector3(-CONST.TABLEWIDTH / 4, opponentSide * 0.9, CONST.TABLEHEIGHT), // Left
+        ];
 
-                let firstBounceSide = 0;
-                let secondBounceSide = 0;
+        for (const target of targets) {
+            // Expanded and refined search space for finding a valid serve
+            for (let vy = 2.0; vy < 12.0; vy += 0.25) { // Forward velocity
+                for (let vz = 0.5; vz < 10.0; vz += 0.25) { // Upward velocity
+                    const initialVelocity = new Vector3(target.x * 0.3, this.side * vy, vz);
+                    tempBall.warp(startPos, initialVelocity, this.spin, 6);
 
-                // Simulate for a sufficient number of frames
-                for (let i = 0; i < 120; i++) {
-                    const bounceSide = tempBall.moveAndCheckBounce();
-                    if (bounceSide !== 0) {
-                        if (firstBounceSide === 0) {
-                            firstBounceSide = bounceSide;
-                        } else {
-                            secondBounceSide = bounceSide;
-                            break;
+                    let firstBounceSide = 0;
+                    let secondBounceSide = 0;
+
+                    for (let i = 0; i < 150; i++) { // Increased simulation frames
+                        const bounceSide = tempBall.moveAndCheckBounce();
+                        if (bounceSide !== 0) {
+                            if (firstBounceSide === 0) firstBounceSide = bounceSide;
+                            else {
+                                secondBounceSide = bounceSide;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (firstBounceSide === this.side && secondBounceSide === -this.side) {
-                    return initialVelocity;
+                    if (firstBounceSide === this.side && secondBounceSide === -this.side) {
+                        return initialVelocity; // SUCCESS
+                    }
                 }
             }
         }
-        console.log("No valid serve velocity found after searching.");
-        return null; // No valid serve found, fallback will be used
+        console.log("No valid serve velocity found after extensive searching.");
+        return null; // Should be very unlikely to happen now
     }
 
     public addStatus(diff: number) {
