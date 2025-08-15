@@ -221,29 +221,61 @@ export class Player {
         let timeOfFlight;
         let target;
 
+        let v;
         if (this.canServe(ball)) {
-            // For serves, we hit towards a short target on our own side to ensure it bounces there first.
-            // A moderate time of flight is used to prevent the ball from being too fast or too slow.
-            this.spin.set(0, 0.5);
-            timeOfFlight = 0.25;
-            target = new Vector3(this.target.x * 0.3, this.side * -0.6, CONST.TABLEHEIGHT);
+            v = this.calculateServeVelocity(ball);
         } else {
-            // For rallies, aim for the target set by the controller.
-            timeOfFlight = 0.3;
-            target = this.target;
+            const timeOfFlight = 0.3;
+            v = this.calculateVelocityForTarget(ball.position, this.target, timeOfFlight, this.spin.y);
         }
 
-        const v = this.calculateVelocityForTarget(ball.position, target, timeOfFlight, this.spin.y);
-
-        if (v.length() > 0) {
+        if (v && v.length() > 0) {
             ball.hit(v, this.spin, this);
             this.swingError = CONST.SWING_PERFECT;
         } else {
-            this.swingError = CONST.SWING_MISS;
+            // If calculation fails, use a fallback
+            v = new Vector3(this.target.x, this.side * 10, 2);
+            ball.hit(v, this.spin, this);
+            this.swingError = CONST.SWING_ERROR;
         }
 
         this.spin.set(0, 0);
         return true;
+    }
+
+    private calculateServeVelocity(ball: Ball): Vector3 | null {
+        const tempBall = ball.clone();
+
+        // Iterate through possible initial velocities to find a valid serve
+        for (let vz = 1.0; vz < 5.0; vz += 0.5) {
+            for (let vy = 1.0; vy < 8.0; vy += 0.5) {
+                const initialVelocity = new Vector3(this.target.x * 0.5, this.side * vy, vz);
+                tempBall.warp(ball.position, initialVelocity, this.spin, 6);
+
+                let firstBounceSide = 0;
+                let secondBounceSide = 0;
+
+                // Simulate 100 frames (should be enough for a serve)
+                for (let i = 0; i < 100; i++) {
+                    const bounceSide = tempBall.moveAndCheckBounce();
+                    if (bounceSide !== 0) {
+                        if (firstBounceSide === 0) {
+                            firstBounceSide = bounceSide;
+                        } else {
+                            secondBounceSide = bounceSide;
+                            break;
+                        }
+                    }
+                }
+
+                // Check for a valid serve: first bounce on my side, second on opponent's
+                if (firstBounceSide === this.side && secondBounceSide === -this.side) {
+                    return initialVelocity; // Found a valid serve velocity
+                }
+            }
+        }
+        console.log("No valid serve velocity found after searching.");
+        return null; // No valid serve found
     }
 
     public addStatus(diff: number) {
