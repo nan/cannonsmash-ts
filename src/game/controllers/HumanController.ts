@@ -1,8 +1,7 @@
 import type { Controller } from './Controller';
 import { InputHandler } from './InputHandler';
 import { Player } from '../Player';
-import { Vector3 } from 'three';
-import * as CONST from '../constants';
+import { Vector2 } from 'three';
 
 export class HumanController implements Controller {
     private input: InputHandler;
@@ -13,26 +12,7 @@ export class HumanController implements Controller {
 
     public update(player: Player, ball: Ball): void {
         this.handleMovement(player);
-        this.handleAiming(player);
         this.handleActions(player, ball);
-    }
-
-    private handleAiming(player: Player): void {
-        // Map mouse position to table coordinates for aiming
-        const mouseX = this.input.mousePosition.x;
-        const mouseY = this.input.mousePosition.y;
-        const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
-
-        // Map mouse X to table X (-TABLEWIDTH / 2 to +TABLEWIDTH / 2)
-        const targetX = (mouseX / screenWidth - 0.5) * CONST.TABLEWIDTH;
-
-        // Map mouse Y to opponent's side of the table (0 to TABLELENGTH / 2)
-        // We assume player 1 is the human, on the negative Y side.
-        // A lower mouseY (top of screen) should be further away.
-        const targetY = (1 - mouseY / screenHeight) * (CONST.TABLELENGTH / 2);
-
-        player.target.set(targetX, targetY, CONST.TABLEHEIGHT);
     }
 
     private handleMovement(player: Player): void {

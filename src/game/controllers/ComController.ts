@@ -1,49 +1,31 @@
 import type { Controller } from './Controller';
 import { Player } from '../Player';
 import { Ball } from '../Ball';
-import { Vector3 } from 'three';
-import * as CONST from '../constants';
 
 export class ComController implements Controller {
     public update(player: Player, ball: Ball): void {
-        // 1. Set the aiming target (intention)
-        // Aim for the general center of the opponent's court
-        player.target.set(0, -CONST.TABLELENGTH / 4, CONST.TABLEHEIGHT);
+        // Simple AI logic
 
-        // 2. Decide movement target
-        const targetPos = new Vector3();
-        // The ball is on the AI's side of the table if its Y position is positive.
-        const isBallOnAISide = ball.position.y > 0;
+        // 1. Move to intercept the ball on the X-axis
+        const targetX = ball.position.x;
+        const currentX = player.position.x;
+        const dx = targetX - currentX;
 
-        if (player.canHitBall(ball) || (isBallOnAISide && ball.velocity.y > 0)) {
-            // Intercept the ball
-            targetPos.x = ball.position.x;
-            // Try to position slightly behind the ball's current y to prepare for a hit
-            targetPos.y = ball.position.y + 0.3; // Player is at positive Y, so add to be "behind"
-        } else {
-            // Return to a default ready position
-            targetPos.x = 0;
-            targetPos.y = CONST.TABLELENGTH / 2 + 0.5; // A bit behind the baseline
+        // A simple proportional controller to move the player
+        player.velocity.x = dx * 1.5; // The factor 1.5 is arbitrary, adjust for difficulty
+
+        // Clamp velocity to a max speed
+        if (Math.abs(player.velocity.x) > player.RUNSPEED) {
+            player.velocity.x = Math.sign(player.velocity.x) * player.RUNSPEED;
         }
 
-        // 3. Execute movement
-        const moveVector = new Vector3().subVectors(targetPos, player.position);
-        // Use a proportional controller for smoother movement
-        player.velocity.x = moveVector.x * 2.0;
-        player.velocity.y = moveVector.y * 2.0;
-
-        // Clamp velocity to max run speed
-        if (player.velocity.length() > player.RUNSPEED) {
-            player.velocity.normalize().multiplyScalar(player.RUNSPEED);
-        }
-
-        // 4. Decide when to swing
+        // 2. Decide when to swing
         if (player.canHitBall(ball)) {
+            // Check if the ball is close enough to hit
             const distance = player.position.distanceTo(ball.position);
-            // Swing if ball is in front and close enough
-            if (distance < 1.0 && player.position.y > ball.position.y && player.swing === 0) {
-                player.spin.set((Math.random() - 0.5), (Math.random() - 0.5)); // some random spin
-                player.startSwing(8, ball);
+            if (distance < 1.0 && player.swing === 0) { // 1.0 is an arbitrary hit radius
+                player.spin.set(-0.5, -0.5); // Give it some default spin
+                player.startSwing(8);
             }
         }
     }
