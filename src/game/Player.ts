@@ -223,13 +223,14 @@ export class Player {
 
         if (this.canServe(ball)) {
             // For serves, we need to hit the ball so it bounces on our side first.
-            // We'll aim for a short target on our side of the table.
+            // To do this, we aim for the real target on the opponent's side, but use a longer
+            // time of flight, which will result in a higher, slower arc that bounces on our side first.
             this.spin.set(0, 0.5);
-            timeOfFlight = 0.15; // Short time of flight for a short, low shot
-            target = new Vector3(this.target.x * 0.5, this.side * -0.7, CONST.TABLEHEIGHT);
+            timeOfFlight = 0.5; // Longer time of flight for a high, slow serve.
+            target = this.target; // Aim for the actual target selected by the player.
         } else {
-            // For rallies, aim for the target set by the controller.
-            timeOfFlight = 0.2; // Default time of flight for rally shots
+            // For rallies, use a shorter time of flight for a faster, more direct shot.
+            timeOfFlight = 0.3;
             target = this.target;
         }
 
