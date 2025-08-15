@@ -207,6 +207,7 @@ export class Player {
             return new Vector3(0, 0, 0);
         }
 
+        console.log(`Calculated V0 for time=${time.toFixed(3)}s, delta=(${delta.x.toFixed(2)}, ${delta.y.toFixed(2)}, ${delta.z.toFixed(2)}): V0=(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)})`);
         return new Vector3(vx, vy, vz);
     }
 
