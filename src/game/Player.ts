@@ -127,10 +127,6 @@ export class Player {
         const prevV = this.velocity.clone();
         const currentSwing = Player.swingTypes.get(this.swingType);
 
-        if (this.swing > 0) {
-            console.log(`Player swing: frame=${this.swing}, type=${this.swingType}`);
-        }
-
         if (!currentSwing) {
             this.swing = 0;
             return false;
@@ -184,33 +180,6 @@ export class Player {
         return true;
     }
 
-    public hitBall(ball: Ball): boolean {
-        console.log(`hitBall called! swingType: ${this.swingType}`);
-        if (Math.abs(this.position.x - ball.position.x) > 0.8) {
-            this.swingError = CONST.SWING_MISS;
-            return false;
-        }
-
-        this.spin.set(0, 0.5);
-        let v;
-
-        if (this.canServe(ball)) {
-            v = this.findServeVelocity(ball);
-        } else {
-            v = this.findRallyVelocity(ball);
-        }
-
-        if (v && v.length() > 0) {
-            ball.hit(v, this.spin, this);
-            this.swingError = CONST.SWING_PERFECT;
-        } else {
-            this.swingError = CONST.SWING_MISS;
-        }
-
-        this.spin.set(0, 0);
-        return true;
-    }
-
     private calculateVelocityForTarget(startPos: Vector3, targetPos: Vector3, time: number, spinY: number): Vector3 {
         const g = CONST.GRAVITY(spinY);
         const k = CONST.PHY;
@@ -220,6 +189,7 @@ export class Player {
         const vy = delta.y * commonFactorH;
         const vz = k * ( (delta.z + g * time / k) / (1 - Math.exp(-k * time)) - (g / (k * k)) );
         if (!isFinite(vx) || !isFinite(vy) || !isFinite(vz)) return new Vector3(0,0,0);
+        console.log(`Calculated V0 for time=${time.toFixed(3)}s, delta=(${delta.x.toFixed(2)}, ${delta.y.toFixed(2)}, ${delta.z.toFixed(2)}): V0=(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)})`);
         return new Vector3(vx, vy, vz);
     }
 
@@ -232,12 +202,8 @@ export class Player {
                 tempBall.warp(ball.position, v, this.spin, this.status);
                 for (let i = 0; i < 100; i++) {
                     const result = tempBall.simulateFrame();
-                    if (result.event === 'BOUNCE' && result.side === -this.side) {
-                        return v;
-                    }
-                    if (result.event === 'NET' || result.event === 'OUT') {
-                        break;
-                    }
+                    if (result.event === 'BOUNCE' && result.side === -this.side) return v;
+                    if (result.event === 'NET' || result.event === 'OUT') break;
                 }
             }
         }
@@ -282,13 +248,37 @@ export class Player {
                 }
 
                 if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
-                    console.log(`Found valid serve velocity: V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)})`);
                     return v;
                 }
             }
         }
-        console.error("No valid serve velocity found after extensive searching.");
         return null;
+    }
+
+    public hitBall(ball: Ball): boolean {
+        if (Math.abs(this.position.x - ball.position.x) > 0.8) {
+            this.swingError = CONST.SWING_MISS;
+            return false;
+        }
+
+        this.spin.set(0, 0.5);
+        let v;
+
+        if (this.canServe(ball)) {
+            v = this.findServeVelocity(ball);
+        } else {
+            v = this.findRallyVelocity(ball);
+        }
+
+        if (v && v.length() > 0) {
+            ball.hit(v, this.spin, this);
+            this.swingError = CONST.SWING_PERFECT;
+        } else {
+            this.swingError = CONST.SWING_MISS;
+        }
+
+        this.spin.set(0, 0);
+        return true;
     }
 
     public addStatus(diff: number) {
