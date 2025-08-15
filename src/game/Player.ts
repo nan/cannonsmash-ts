@@ -127,6 +127,10 @@ export class Player {
         const prevV = this.velocity.clone();
         const currentSwing = Player.swingTypes.get(this.swingType);
 
+        if (this.swing > 0) {
+            console.log(`Player swing: frame=${this.swing}, type=${this.swingType}`);
+        }
+
         if (!currentSwing) {
             this.swing = 0;
             return false;
