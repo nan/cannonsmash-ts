@@ -281,7 +281,6 @@ export class Player {
                 }
             }
         }
-        console.log("No valid serve velocity found after extensive searching.");
         return null; // Should be very unlikely to happen now
     }
 
