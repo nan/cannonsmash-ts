@@ -207,7 +207,6 @@ export class Player {
             return new Vector3(0, 0, 0);
         }
 
-        console.log(`Calculated V0 for time=${time.toFixed(3)}s, delta=(${delta.x.toFixed(2)}, ${delta.y.toFixed(2)}, ${delta.z.toFixed(2)}): V0=(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)})`);
         return new Vector3(vx, vy, vz);
     }
 
@@ -245,18 +244,20 @@ export class Player {
 
     private calculateServeVelocity(ball: Ball): Vector3 | null {
         const tempBall = ball.clone();
+        const startPos = ball.position.clone();
+        startPos.z = 1.4; // Assume a consistent hitting height for simulation
 
-        // Iterate through possible initial velocities to find a valid serve
-        for (let vz = 1.0; vz < 5.0; vz += 0.5) {
-            for (let vy = 1.0; vy < 8.0; vy += 0.5) {
-                const initialVelocity = new Vector3(this.target.x * 0.5, this.side * vy, vz);
-                tempBall.warp(ball.position, initialVelocity, this.spin, 6);
+        // Expanded search space for finding a valid serve
+        for (let vy = 2.0; vy < 10.0; vy += 0.5) { // Forward velocity
+            for (let vz = 0.5; vz < 8.0; vz += 0.5) { // Upward velocity
+                const initialVelocity = new Vector3(this.target.x * 0.4, this.side * vy, vz);
+                tempBall.warp(startPos, initialVelocity, this.spin, 6);
 
                 let firstBounceSide = 0;
                 let secondBounceSide = 0;
 
-                // Simulate 100 frames (should be enough for a serve)
-                for (let i = 0; i < 100; i++) {
+                // Simulate for a sufficient number of frames
+                for (let i = 0; i < 120; i++) {
                     const bounceSide = tempBall.moveAndCheckBounce();
                     if (bounceSide !== 0) {
                         if (firstBounceSide === 0) {
@@ -268,14 +269,13 @@ export class Player {
                     }
                 }
 
-                // Check for a valid serve: first bounce on my side, second on opponent's
                 if (firstBounceSide === this.side && secondBounceSide === -this.side) {
-                    return initialVelocity; // Found a valid serve velocity
+                    return initialVelocity;
                 }
             }
         }
         console.log("No valid serve velocity found after searching.");
-        return null; // No valid serve found
+        return null; // No valid serve found, fallback will be used
     }
 
     public addStatus(diff: number) {
