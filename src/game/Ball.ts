@@ -23,7 +23,19 @@ export class Ball {
         return new Ball(this.position, this.velocity, this.spin, this.status);
     }
 
-    private applyPhysics(oldPosition: Vector3, oldVelocity: Vector3, oldSpin: Vector2) {
+    public move(): boolean {
+        if (this.status < 0) {
+            this.status--;
+        }
+        if (this.status < -100 || this.status === 8) {
+            this.reset();
+            return false;
+        }
+
+        const oldPosition = this.position.clone();
+        const oldVelocity = this.velocity.clone();
+        const oldSpin = this.spin.clone();
+
         const rot = oldSpin.x / CONST.PHY - oldSpin.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
         this.velocity.x = (oldVelocity.x * Math.cos(rot) - oldVelocity.y * Math.sin(rot)) * Math.exp(-CONST.PHY * CONST.TICK);
         this.velocity.y = (oldVelocity.x * Math.sin(rot) + oldVelocity.y * Math.cos(rot)) * Math.exp(-CONST.PHY * CONST.TICK);
@@ -39,49 +51,8 @@ export class Ball {
         }
         this.position.z = (CONST.PHY * oldVelocity.z + CONST.GRAVITY(oldSpin.y)) / (CONST.PHY * CONST.PHY) - (CONST.PHY * oldVelocity.z + CONST.GRAVITY(oldSpin.y)) / (CONST.PHY * CONST.PHY) * Math.exp(-CONST.PHY * CONST.TICK) - CONST.GRAVITY(oldSpin.y) / CONST.PHY * CONST.TICK + oldPosition.z;
         this.spin.x = oldSpin.x * Math.exp(-CONST.PHY * CONST.TICK);
-    }
 
-    public move(): boolean {
-        if (this.status >= 0) {
-            console.log(`Ball[${this.status}]: pos=(${this.position.x.toFixed(2)}, ${this.position.y.toFixed(2)}, ${this.position.z.toFixed(2)}) vel=(${this.velocity.x.toFixed(2)}, ${this.velocity.y.toFixed(2)}, ${this.velocity.z.toFixed(2)})`);
-        }
-
-        if (this.status < 0) { this.status--; }
-        if (this.status < -100 || this.status === 8) {
-            this.reset();
-            return false;
-        }
-
-        const oldPosition = this.position.clone();
-        this.applyPhysics(oldPosition, this.velocity.clone(), this.spin.clone());
-        const result = this.collisionCheck(oldPosition);
-
-        if (result.event === 'BOUNCE') {
-            this.position.copy(result.bouncePos!);
-            this.velocity.z *= -CONST.TABLE_E;
-            this.spin.x *= 0.95;
-            this.spin.y *= 0.8;
-
-            if (result.side < 0) { // My side
-                switch (this.status) {
-                    case 2: this.status = 3; break;
-                    case 4: this.status = 0; break;
-                    default: this.ballDead();
-                }
-            } else { // Opponent side
-                switch (this.status) {
-                    case 0: this.status = 1; break;
-                    case 5: this.status = 2; break;
-                    default: this.ballDead();
-                }
-            }
-        } else if (result.event === 'NET') {
-            this.velocity.x *= 0.5;
-            this.velocity.y *= -0.2;
-            this.spin.multiplyScalar(-0.8);
-        } else if (result.event === 'OUT') {
-            this.ballDead();
-        }
+        this.collisionCheck(oldPosition);
 
         return true;
     }
@@ -114,7 +85,7 @@ export class Ball {
         this.status = status;
     }
 
-    private collisionCheck(oldPosition: Vector3): { event: 'BOUNCE' | 'NET' | 'OUT' | 'NONE', bouncePos?: Vector3, side: number } {
+    private collisionCheck(oldPosition: Vector3) {
         let netT = Infinity;
         if (oldPosition.y * this.position.y <= 0.0) {
             const timeToNet = Math.abs(oldPosition.y / ((this.position.y - oldPosition.y) / CONST.TICK));
@@ -128,7 +99,6 @@ export class Ball {
         }
 
         let tableT = Infinity;
-        let bouncePos = new Vector3();
         if ((oldPosition.z - CONST.TABLEHEIGHT) * (this.position.z - CONST.TABLEHEIGHT) <= 0.0) {
             const timeToTable = Math.abs((oldPosition.z - CONST.TABLEHEIGHT) / ((this.position.z - oldPosition.z) / CONST.TICK));
             if (timeToTable <= CONST.TICK) {
@@ -136,28 +106,41 @@ export class Ball {
                 const xAtTable = oldPosition.x + (this.position.x - oldPosition.x) * timeToTable / CONST.TICK;
                 if (Math.abs(yAtTable) <= CONST.TABLELENGTH / 2 && Math.abs(xAtTable) <= CONST.TABLEWIDTH / 2) {
                     tableT = timeToTable;
-                    bouncePos.set(xAtTable, yAtTable, CONST.TABLEHEIGHT);
                 }
             }
         }
 
-        if (netT < tableT) return { event: 'NET', side: 0 };
-        if (tableT < netT) return { event: 'BOUNCE', side: Math.sign(bouncePos.y), bouncePos: bouncePos };
-        if (Math.abs(this.position.x) > CONST.AREAXSIZE / 2 || Math.abs(this.position.y) > CONST.AREAYSIZE / 2 || this.position.z < 0) {
-            return { event: 'OUT', side: 0 };
+        if (netT < tableT) {
+            this.velocity.x *= 0.5;
+            this.velocity.y *= -0.2;
+            this.spin.multiplyScalar(-0.8);
+            return;
         }
-        return { event: 'NONE', side: 0 };
-    }
 
-    public simulateFrame(): { event: 'BOUNCE' | 'NET' | 'OUT' | 'NONE', side: number, bouncePos?: Vector3 } {
-        const oldPosition = this.position.clone();
-        this.applyPhysics(oldPosition, this.velocity.clone(), this.spin.clone());
-        const result = this.collisionCheck(oldPosition);
-        if (result.event === 'BOUNCE') {
-            this.position.copy(result.bouncePos!);
+        if (tableT < netT) {
+            const tableY = oldPosition.y + this.velocity.y * tableT;
+             if (tableY < 0) { // My side
+                switch (this.status) {
+                    case 2: this.status = 3; break;
+                    case 4: this.status = 0; break;
+                    default: this.ballDead();
+                }
+            } else { // Opponent side
+                switch (this.status) {
+                    case 0: this.status = 1; break;
+                    case 5: this.status = 2; break;
+                    default: this.ballDead();
+                }
+            }
             this.velocity.z *= -CONST.TABLE_E;
+            this.spin.x *= 0.95;
+            this.spin.y *= 0.8;
+            return;
         }
-        return result;
+
+        if (Math.abs(this.position.x) > CONST.AREAXSIZE / 2 || Math.abs(this.position.y) > CONST.AREAYSIZE / 2 || this.position.z < 0) {
+            this.ballDead();
+        }
     }
 
     public ballDead() {
