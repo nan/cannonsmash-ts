@@ -127,10 +127,6 @@ export class Player {
         const prevV = this.velocity.clone();
         const currentSwing = Player.swingTypes.get(this.swingType);
 
-        if (this.swing > 0) {
-            console.log(`Player swing: frame=${this.swing}, type=${this.swingType}`);
-        }
-
         if (!currentSwing) {
             this.swing = 0;
             return false;
@@ -311,6 +307,8 @@ export class Player {
     }
 
     public startSwing(power: number, ball: Ball): boolean {
+        if (this.swing > 0) return false;
+
         if (ball.status === 8) {
             if (this.swingType < CONST.SERVE_MIN || this.swingType > CONST.SERVE_MAX) {
                 this.swingType = CONST.SERVE_NORMAL;
@@ -322,14 +320,12 @@ export class Player {
             return true;
         }
 
-        if (this.swing > 0) return false;
-
+        this.swingType = CONST.SWING_NORMAL;
         const currentSwing = Player.swingTypes.get(this.swingType);
         if (!currentSwing) return false;
 
         this.swing = 1;
         this.power = power;
-        this.swingType = CONST.SWING_NORMAL;
         this.swingSide = true;
 
         return true;
