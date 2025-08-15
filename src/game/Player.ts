@@ -127,6 +127,10 @@ export class Player {
         const prevV = this.velocity.clone();
         const currentSwing = Player.swingTypes.get(this.swingType);
 
+        if (this.swing > 0) {
+            console.log(`Player swing: frame=${this.swing}, type=${this.swingType}`);
+        }
+
         if (!currentSwing) {
             this.swing = 0;
             return false;
@@ -211,6 +215,7 @@ export class Player {
     }
 
     public hitBall(ball: Ball): boolean {
+        console.log(`hitBall called! swingType: ${this.swingType}`);
         if (Math.abs(this.position.x - ball.position.x) > 0.8) {
             this.swingError = CONST.SWING_MISS;
             return false;
@@ -224,15 +229,21 @@ export class Player {
         if (this.canServe(ball)) {
             v = this.calculateServeVelocity(ball);
         } else {
-            const timeOfFlight = 0.3;
-            v = this.calculateVelocityForTarget(ball.position, this.target, timeOfFlight, this.spin.y);
+            // For rallies, try a few different times of flight to find a valid shot.
+            const timesToTry = [0.28, 0.3, 0.32, 0.25, 0.35];
+            for (const time of timesToTry) {
+                v = this.calculateVelocityForTarget(ball.position, this.target, time, this.spin.y);
+                if (v && v.length() > 0) {
+                    break; // Found a valid velocity
+                }
+            }
         }
 
         if (v && v.length() > 0) {
             ball.hit(v, this.spin, this);
             this.swingError = CONST.SWING_PERFECT;
         } else {
-            console.error("Failed to calculate a valid hit velocity.");
+            // This should now be very rare. If it happens, it's a miss.
             this.swingError = CONST.SWING_MISS;
         }
 
@@ -306,6 +317,10 @@ export class Player {
     public startSwing(power: number, ball: Ball): boolean {
         // If we are waiting to serve, this action should be a toss.
         if (ball.status === 8) {
+            // Ensure the swing type is a serve type
+            if (this.swingType < CONST.SERVE_MIN || this.swingType > CONST.SERVE_MAX) {
+                this.swingType = CONST.SERVE_NORMAL;
+            }
             const swingTypeData = Player.swingTypes.get(this.swingType);
             const tossPower = swingTypeData ? swingTypeData.tossV : 2.5;
             ball.toss(tossPower, this);
