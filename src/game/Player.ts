@@ -188,12 +188,14 @@ export class Player {
         const v = new Vector3();
 
         if (this.canServe(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
-            // Simplified Serve Hit - aim towards the player's target
+            // Serve Hit - aim towards the player's target using player's power and spin
+            // These values will be set by the controller before calling startSwing.
             const targetPos = new Vector3(this.target.x, this.target.y, 0);
-            v.subVectors(targetPos, ball.position).normalize().multiplyScalar(18); // Aim and set speed
+            const speed = this.power * 2.5; // Convert power (e.g., 0-10) to a velocity scalar
+            v.subVectors(targetPos, ball.position).normalize().multiplyScalar(speed);
             v.z = 2; // Give it some upward velocity, overriding the Z from normalization
 
-            this.spin.set(0, 0.5); // Add some topspin
+            // The player's spin property should be set by the controller.
             ball.hit(v, this.spin, this);
             this.swingError = CONST.SWING_PERFECT;
         }
@@ -233,28 +235,37 @@ export class Player {
         return (ball.status === 6 && this.side === 1) || (ball.status === 7 && this.side === -1);
     }
 
-    public startSwing(power: number, ball: Ball): boolean {
-        // If we are waiting to serve, this action should be a toss.
-        if (ball.status === 8) {
-            const swingTypeData = Player.swingTypes.get(this.swingType);
-            const tossPower = swingTypeData ? swingTypeData.tossV : 2.5;
-            ball.toss(tossPower, this);
-            this.swing = 1; // Start the swing motion as well
-            return true;
-        }
+    public tossBall(ball: Ball): boolean {
+        if (ball.status !== 8) return false;
 
+        const swingTypeData = Player.swingTypes.get(this.swingType);
+        if (!swingTypeData) return false;
+
+        const tossPower = swingTypeData.tossV;
+        ball.toss(tossPower, this);
+        return true;
+    }
+
+    public startSwing(power: number, ball: Ball): boolean {
         if (this.swing > 0) return false; // Already swinging
+
+        // If we can serve, this swing is a serve hit.
+        // Otherwise, it's a regular rally swing.
+        const isServeHit = this.canServe(ball);
+
+        // In C++, SwingType is determined here based on ball position for rallies.
+        // For now, we assume a basic SWING_NORMAL for rallies.
+        // For serves, the type should have been set already.
+        if (!isServeHit) {
+            this.swingType = CONST.SWING_NORMAL;
+            this.swingSide = true; // Assume forehand
+        }
 
         const currentSwing = Player.swingTypes.get(this.swingType);
         if (!currentSwing) return false;
 
         this.swing = 1; // Start of backswing
         this.power = power;
-
-        // In C++, SwingType is determined here based on ball position.
-        // For now, we assume a basic SWING_NORMAL.
-        this.swingType = CONST.SWING_NORMAL;
-        this.swingSide = true; // Assume forehand
 
         return true;
     }

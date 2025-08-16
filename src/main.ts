@@ -5,6 +5,7 @@ import { BallView } from './game/views/BallView';
 import { PlayerView } from './game/views/PlayerView';
 import { ScoreView } from './game/views/ScoreView';
 import { PlayGame } from './game/PlayGame';
+import { InputHandler } from './game/controllers/InputHandler';
 
 class Game {
     private gameView: GameView;
@@ -72,6 +73,9 @@ class Game {
 
         // Render scene
         this.gameView.update();
+
+        // Update input handler
+        InputHandler.getInstance().update();
     }
 }
 
