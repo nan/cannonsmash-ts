@@ -25,7 +25,7 @@ export class ComController implements Controller {
             const distance = player.position.distanceTo(ball.position);
             if (distance < 1.0 && player.swing === 0) { // 1.0 is an arbitrary hit radius
                 player.spin.set(-0.5, -0.5); // Give it some default spin
-                player.startSwing(8);
+                player.startSwing(8, ball);
             }
         }
     }

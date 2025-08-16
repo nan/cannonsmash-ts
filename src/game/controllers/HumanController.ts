@@ -1,7 +1,7 @@
 import type { Controller } from './Controller';
 import { InputHandler } from './InputHandler';
 import { Player } from '../Player';
-import { Vector2 } from 'three';
+import { Ball } from '../Ball';
 
 export class HumanController implements Controller {
     private input: InputHandler;
@@ -17,23 +17,23 @@ export class HumanController implements Controller {
 
     private handleMovement(player: Player): void {
         const speed = player.RUNSPEED;
-        let moving = false;
+        // let moving = false;
 
         if (this.input.isKeyPressed('arrowup') || this.input.isKeyPressed('w')) {
             player.velocity.y = speed;
-            moving = true;
+            // moving = true;
         }
         if (this.input.isKeyPressed('arrowdown') || this.input.isKeyPressed('s')) {
             player.velocity.y = -speed;
-            moving = true;
+            // moving = true;
         }
         if (this.input.isKeyPressed('arrowleft') || this.input.isKeyPressed('a')) {
             player.velocity.x = -speed;
-            moving = true;
+            // moving = true;
         }
         if (this.input.isKeyPressed('arrowright') || this.input.isKeyPressed('d')) {
             player.velocity.x = speed;
-            moving = true;
+            // moving = true;
         }
 
         // If no keys are pressed, stop movement

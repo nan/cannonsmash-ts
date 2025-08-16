@@ -231,7 +231,7 @@ export class Player {
         ];
 
         for (const target of targets) {
-            for (let time = 0.3; time < 1.0; time += 0.05) {
+            for (let time = 0.2; time < 1.5; time += 0.02) {
                 const v = this.calculateVelocityForTarget(startPos, target, time, this.spin.y);
                 if (!v || v.length() === 0) continue;
 
@@ -243,7 +243,7 @@ export class Player {
                 let secondBounce: any = null;
                 let hasHitNet = false;
 
-                for (let i = 0; i < 150; i++) {
+                for (let i = 0; i < 250; i++) {
                     const sim = tempBall.simulateFrame(tempState);
                     tempState = sim.newState;
                     const result = sim.result;

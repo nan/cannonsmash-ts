@@ -1,4 +1,5 @@
 import { Player } from '../Player';
+import { Ball } from '../Ball';
 
 export interface Controller {
     /**
