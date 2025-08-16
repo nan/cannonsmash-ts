@@ -218,7 +218,6 @@ export class Player {
     }
 
     private findServeVelocity(ball: Ball): Vector3 | null {
-        console.log("Starting serve velocity search...");
         const tempBall = ball.clone();
         const startPos = ball.position.clone();
         startPos.z = 1.4;
@@ -231,34 +230,33 @@ export class Player {
         ];
 
         for (const target of targets) {
-            for (let vy = 2.0; vy < 12.0; vy += 0.5) {
-                for (let vz = -5.0; vz < 10.0; vz += 0.5) {
-                    const initialVelocity = new Vector3(target.x * 0.3, this.side * vy, vz);
-                    tempBall.warp(startPos.clone(), initialVelocity, this.spin, 6);
+            for (let time = 0.3; time < 0.8; time += 0.05) {
+                const v = this.calculateVelocityForTarget(startPos, target, time, this.spin.y);
+                if (!v || v.length() === 0) continue;
 
-                    let firstBounce: any = null;
-                    let secondBounce: any = null;
-                    let hasHitNet = false;
+                tempBall.warp(startPos, v, this.spin, 6);
+                let firstBounce: any = null;
+                let secondBounce: any = null;
+                let hasHitNet = false;
 
-                    for (let i = 0; i < 150; i++) {
-                        const result = tempBall.simulateFrame();
-                        if (result.event === 'NET' || result.event === 'OUT') {
-                            hasHitNet = true;
+                for (let i = 0; i < 150; i++) {
+                    const result = tempBall.simulateFrame();
+                    if (result.event === 'NET' || result.event === 'OUT') {
+                        hasHitNet = true;
+                        break;
+                    }
+                    if (result.event === 'BOUNCE') {
+                        if (!firstBounce) firstBounce = result;
+                        else {
+                            secondBounce = result;
                             break;
                         }
-                        if (result.event === 'BOUNCE') {
-                            if (!firstBounce) firstBounce = result;
-                            else {
-                                secondBounce = result;
-                                break;
-                            }
-                        }
                     }
+                }
 
-                    if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
-                        console.log(`Found valid serve velocity: V0=(${initialVelocity.x.toFixed(2)}, ${initialVelocity.y.toFixed(2)}, ${initialVelocity.z.toFixed(2)})`);
-                        return initialVelocity;
-                    }
+                if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
+                    console.log(`Found valid serve velocity: V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)})`);
+                    return v;
                 }
             }
         }
