@@ -1,5 +1,6 @@
 import { Ball } from './Ball';
 import { Player } from './Player';
+import * as CONST from './constants';
 import { HumanController } from './controllers/HumanController';
 import { ComController } from './controllers/ComController';
 
@@ -67,6 +68,9 @@ export class PlayGame {
     public resetBall() {
         const server = this.servingPlayer;
         const serverSide = server.side;
+
+        // Set player's swing type to a default serve
+        server.swingType = CONST.SERVE_NORMAL;
 
         // Position the ball in front of the server
         // This logic is from C++ Ball::Reset
