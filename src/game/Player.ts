@@ -127,10 +127,6 @@ export class Player {
         const prevV = this.velocity.clone();
         const currentSwing = Player.swingTypes.get(this.swingType);
 
-        if (this.swing > 0) {
-            console.log(`Player swing: frame=${this.swing}, type=${this.swingType}`);
-        }
-
         if (!currentSwing) {
             this.swing = 0;
             return false;
@@ -184,32 +180,6 @@ export class Player {
         return true;
     }
 
-    public hitBall(ball: Ball): boolean {
-        if (Math.abs(this.position.x - ball.position.x) > 0.8) {
-            this.swingError = CONST.SWING_MISS;
-            return false;
-        }
-
-        this.spin.set(0, 0.5);
-        let v;
-
-        if (this.canServe(ball)) {
-            v = this.findServeVelocity(ball);
-        } else {
-            v = this.findRallyVelocity(ball);
-        }
-
-        if (v && v.length() > 0) {
-            ball.hit(v, this.spin, this);
-            this.swingError = CONST.SWING_PERFECT;
-        } else {
-            this.swingError = CONST.SWING_MISS;
-        }
-
-        this.spin.set(0, 0);
-        return true;
-    }
-
     private calculateVelocityForTarget(startPos: Vector3, targetPos: Vector3, time: number, spinY: number): Vector3 {
         const g = CONST.GRAVITY(spinY);
         const k = CONST.PHY;
@@ -256,39 +226,62 @@ export class Player {
         ];
 
         for (const target of targets) {
-            for (let vy = 2.0; vy < 12.0; vy += 0.5) {
-                for (let vz = -5.0; vz < 10.0; vz += 0.5) {
-                    const initialVelocity = new Vector3(target.x * 0.3, this.side * vy, vz);
-                    tempBall.warp(startPos.clone(), initialVelocity, this.spin, 6);
+            for (let time = 0.3; time < 0.8; time += 0.05) {
+                const v = this.calculateVelocityForTarget(startPos, target, time, this.spin.y);
+                if (!v || v.length() === 0) continue;
 
-                    let firstBounce: any = null;
-                    let secondBounce: any = null;
-                    let hasHitNet = false;
+                tempBall.warp(startPos, v, this.spin, 6);
+                let firstBounce: any = null;
+                let secondBounce: any = null;
+                let hasHitNet = false;
 
-                    for (let i = 0; i < 150; i++) {
-                        const result = tempBall.simulateFrame();
-                        if (result.event === 'NET' || result.event === 'OUT') {
-                            hasHitNet = true;
+                for (let i = 0; i < 150; i++) {
+                    const result = tempBall.simulateFrame();
+                    if (result.event === 'NET' || result.event === 'OUT') {
+                        hasHitNet = true;
+                        break;
+                    }
+                    if (result.event === 'BOUNCE') {
+                        if (!firstBounce) firstBounce = result;
+                        else {
+                            secondBounce = result;
                             break;
                         }
-                        if (result.event === 'BOUNCE') {
-                            if (!firstBounce) firstBounce = result;
-                            else {
-                                secondBounce = result;
-                                break;
-                            }
-                        }
                     }
+                }
 
-                    if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
-                        console.log(`Found valid serve velocity: V0=(${initialVelocity.x.toFixed(2)}, ${initialVelocity.y.toFixed(2)}, ${initialVelocity.z.toFixed(2)})`);
-                        return initialVelocity;
-                    }
+                if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
+                    return v;
                 }
             }
         }
-        console.error("No valid serve velocity found after extensive searching.");
         return null;
+    }
+
+    public hitBall(ball: Ball): boolean {
+        if (Math.abs(this.position.x - ball.position.x) > 0.8) {
+            this.swingError = CONST.SWING_MISS;
+            return false;
+        }
+
+        this.spin.set(0, 0.5);
+        let v;
+
+        if (this.canServe(ball)) {
+            v = this.findServeVelocity(ball);
+        } else {
+            v = this.findRallyVelocity(ball);
+        }
+
+        if (v && v.length() > 0) {
+            ball.hit(v, this.spin, this);
+            this.swingError = CONST.SWING_PERFECT;
+        } else {
+            this.swingError = CONST.SWING_MISS;
+        }
+
+        this.spin.set(0, 0);
+        return true;
     }
 
     public addStatus(diff: number) {
