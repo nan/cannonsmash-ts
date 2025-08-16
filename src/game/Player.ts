@@ -193,7 +193,6 @@ export class Player {
         const vy = delta.y * commonFactorH;
         const vz = k * ( (delta.z + g * time / k) / (1 - Math.exp(-k * time)) - (g / (k * k)) );
         if (!isFinite(vx) || !isFinite(vy) || !isFinite(vz)) return new Vector3(0,0,0);
-        console.log(`Calculated V0 for time=${time.toFixed(3)}s, delta=(${delta.x.toFixed(2)}, ${delta.y.toFixed(2)}, ${delta.z.toFixed(2)}): V0=(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)})`);
         return new Vector3(vx, vy, vz);
     }
 
@@ -203,13 +202,15 @@ export class Player {
             const v = this.calculateVelocityForTarget(ball.position, this.target, time, this.spin.y);
             if (v && v.length() > 0) {
                 const tempBall = ball.clone();
-                tempBall.warp(ball.position, v, this.spin, this.status);
+                let tempState = { position: tempBall.position, velocity: v, spin: tempBall.spin };
+                tempBall.warp(tempState.position, tempState.velocity, tempState.spin, this.status);
                 for (let i = 0; i < 100; i++) {
-                    const result = tempBall.simulateFrame();
-                    if (result.event === 'BOUNCE' && result.side === -this.side) {
+                    const sim = tempBall.simulateFrame(tempState);
+                    tempState = sim.newState;
+                    if (sim.result.event === 'BOUNCE' && sim.result.side === -this.side) {
                         return v;
                     }
-                    if (result.event === 'NET' || result.event === 'OUT') {
+                    if (sim.result.event === 'NET' || sim.result.event === 'OUT') {
                         break;
                     }
                 }
@@ -220,9 +221,7 @@ export class Player {
 
     private findServeVelocity(ball: Ball): Vector3 | null {
         console.log("Starting serve velocity search...");
-        const tempBall = ball.clone();
         const startPos = ball.position.clone();
-        startPos.z = 1.4;
 
         const opponentSide = -this.side;
         const targets = [
@@ -232,36 +231,43 @@ export class Player {
         ];
 
         for (const target of targets) {
-            for (let vy = 2.0; vy < 12.0; vy += 0.5) {
-                for (let vz = -4.0; vz < 10.0; vz += 0.5) {
-                    const initialVelocity = new Vector3(target.x * 0.3, this.side * vy, vz);
-                    tempBall.warp(startPos.clone(), initialVelocity, this.spin, 6);
+            for (let time = 0.3; time < 1.0; time += 0.05) {
+                const v = this.calculateVelocityForTarget(startPos, target, time, this.spin.y);
+                if (!v || v.length() === 0) continue;
 
-                    let firstBounce: any = null;
-                    let secondBounce: any = null;
-                    let hasHitNet = false;
+                const tempBall = ball.clone();
+                let tempState = { position: startPos, velocity: v, spin: this.spin };
+                tempBall.warp(tempState.position, tempState.velocity, tempState.spin, 6);
 
-                    for (let i = 0; i < 150; i++) {
-                        const result = tempBall.simulateFrame();
-                        if (result.event === 'NET' || result.event === 'OUT') {
-                            hasHitNet = true;
+                let firstBounce: any = null;
+                let secondBounce: any = null;
+                let hasHitNet = false;
+
+                for (let i = 0; i < 150; i++) {
+                    const sim = tempBall.simulateFrame(tempState);
+                    tempState = sim.newState;
+                    const result = sim.result;
+
+                    if (result.event === 'NET' || result.event === 'OUT') {
+                        hasHitNet = true;
+                        break;
+                    }
+                    if (result.event === 'BOUNCE') {
+                        if (!firstBounce) firstBounce = result;
+                        else {
+                            secondBounce = result;
                             break;
                         }
-                        if (result.event === 'BOUNCE') {
-                            if (!firstBounce) firstBounce = result;
-                            else {
-                                secondBounce = result;
-                                break;
-                            }
-                        }
                     }
+                }
 
-                    if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
-                        return initialVelocity;
-                    }
+                if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
+                    console.log(`Found valid serve velocity: V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}) for target=(${target.x.toFixed(2)}, ${target.y.toFixed(2)})`);
+                    return v;
                 }
             }
         }
+        console.error("No valid serve velocity found after extensive searching.");
         return null;
     }
 

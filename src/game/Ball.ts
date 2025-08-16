@@ -2,6 +2,12 @@ import { Vector2, Vector3 } from 'three';
 import * as CONST from './constants';
 import { PlayGame } from './PlayGame';
 
+interface BallState {
+    position: Vector3;
+    velocity: Vector3;
+    spin: Vector2;
+}
+
 /**
  * Ball class.
  */
@@ -24,6 +30,10 @@ export class Ball {
     }
 
     public move(): boolean {
+        if (this.status >= 0) {
+            console.log(`Ball[${this.status}]: pos=(${this.position.x.toFixed(2)}, ${this.position.y.toFixed(2)}, ${this.position.z.toFixed(2)}) vel=(${this.velocity.x.toFixed(2)}, ${this.velocity.y.toFixed(2)}, ${this.velocity.z.toFixed(2)})`);
+        }
+
         if (this.status < 0) {
             this.status--;
         }
@@ -36,7 +46,11 @@ export class Ball {
         const oldVelocity = this.velocity.clone();
         const oldSpin = this.spin.clone();
 
-        this.applyPhysics(oldPosition, oldVelocity, oldSpin);
+        const newState = this.calculateNextFrameState({ position: oldPosition, velocity: oldVelocity, spin: oldSpin });
+        this.position.copy(newState.position);
+        this.velocity.copy(newState.velocity);
+        this.spin.copy(newState.spin);
+
         const result = this.collisionCheck(oldPosition);
 
         if (result.event === 'BOUNCE') {
@@ -69,22 +83,31 @@ export class Ball {
         return true;
     }
 
-    private applyPhysics(oldPosition: Vector3, oldVelocity: Vector3, oldSpin: Vector2) {
+    private calculateNextFrameState(currentState: BallState): BallState {
+        const { position: oldPosition, velocity: oldVelocity, spin: oldSpin } = currentState;
+
+        const newVelocity = new Vector3();
+        const newPosition = new Vector3();
+        const newSpin = new Vector2();
+
         const rot = oldSpin.x / CONST.PHY - oldSpin.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
-        this.velocity.x = (oldVelocity.x * Math.cos(rot) - oldVelocity.y * Math.sin(rot)) * Math.exp(-CONST.PHY * CONST.TICK);
-        this.velocity.y = (oldVelocity.x * Math.sin(rot) + oldVelocity.y * Math.cos(rot)) * Math.exp(-CONST.PHY * CONST.TICK);
-        this.velocity.z = (oldVelocity.z + CONST.GRAVITY(oldSpin.y) / CONST.PHY) * Math.exp(-CONST.PHY * CONST.TICK) - CONST.GRAVITY(oldSpin.y) / CONST.PHY;
+        newVelocity.x = (oldVelocity.x * Math.cos(rot) - oldVelocity.y * Math.sin(rot)) * Math.exp(-CONST.PHY * CONST.TICK);
+        newVelocity.y = (oldVelocity.x * Math.sin(rot) + oldVelocity.y * Math.cos(rot)) * Math.exp(-CONST.PHY * CONST.TICK);
+        newVelocity.z = (oldVelocity.z + CONST.GRAVITY(oldSpin.y) / CONST.PHY) * Math.exp(-CONST.PHY * CONST.TICK) - CONST.GRAVITY(oldSpin.y) / CONST.PHY;
 
         if (oldSpin.x === 0.0) {
-            this.position.x = oldPosition.x + oldVelocity.x / CONST.PHY - oldVelocity.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
-            this.position.y = oldPosition.y + oldVelocity.y / CONST.PHY - oldVelocity.y / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
+            newPosition.x = oldPosition.x + oldVelocity.x / CONST.PHY - oldVelocity.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
+            newPosition.y = oldPosition.y + oldVelocity.y / CONST.PHY - oldVelocity.y / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
         } else {
             const theta = oldSpin.x / CONST.PHY - oldSpin.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
-            this.position.x = oldVelocity.y / oldSpin.x * Math.cos(theta) - (-oldVelocity.x / oldSpin.x) * Math.sin(theta) + oldPosition.x - oldVelocity.y / oldSpin.x;
-            this.position.y = oldVelocity.y / oldSpin.x * Math.sin(theta) + (-oldVelocity.x / oldSpin.x) * Math.cos(theta) + oldPosition.y + oldVelocity.x / oldSpin.x;
+            newPosition.x = oldVelocity.y / oldSpin.x * Math.cos(theta) - (-oldVelocity.x / oldSpin.x) * Math.sin(theta) + oldPosition.x - oldVelocity.y / oldSpin.x;
+            newPosition.y = oldVelocity.y / oldSpin.x * Math.sin(theta) + (-oldVelocity.x / oldSpin.x) * Math.cos(theta) + oldPosition.y + oldVelocity.x / oldSpin.x;
         }
-        this.position.z = (CONST.PHY * oldVelocity.z + CONST.GRAVITY(oldSpin.y)) / (CONST.PHY * CONST.PHY) - (CONST.PHY * oldVelocity.z + CONST.GRAVITY(oldSpin.y)) / (CONST.PHY * CONST.PHY) * Math.exp(-CONST.PHY * CONST.TICK) - CONST.GRAVITY(oldSpin.y) / CONST.PHY * CONST.TICK + oldPosition.z;
-        this.spin.x = oldSpin.x * Math.exp(-CONST.PHY * CONST.TICK);
+        newPosition.z = (CONST.PHY * oldVelocity.z + CONST.GRAVITY(oldSpin.y)) / (CONST.PHY * CONST.PHY) - (CONST.PHY * oldVelocity.z + CONST.GRAVITY(oldSpin.y)) / (CONST.PHY * CONST.PHY) * Math.exp(-CONST.PHY * CONST.TICK) - CONST.GRAVITY(oldSpin.y) / CONST.PHY * CONST.TICK + oldPosition.z;
+        newSpin.x = oldSpin.x * Math.exp(-CONST.PHY * CONST.TICK);
+        newSpin.y = oldSpin.y;
+
+        return { position: newPosition, velocity: newVelocity, spin: newSpin };
     }
 
     private collisionCheck(oldPosition: Vector3): { event: 'BOUNCE' | 'NET' | 'OUT' | 'NONE', bouncePos?: Vector3, side: number } {
@@ -122,17 +145,14 @@ export class Ball {
         return { event: 'NONE', side: 0 };
     }
 
-    public simulateFrame(): { event: 'BOUNCE' | 'NET' | 'OUT' | 'NONE', side: number, bouncePos?: Vector3 } {
-        const oldPosition = this.position.clone();
-        const oldVelocity = this.velocity.clone();
-        const oldSpin = this.spin.clone();
-        this.applyPhysics(oldPosition, oldVelocity, oldSpin);
-        const result = this.collisionCheck(oldPosition);
+    public simulateFrame(currentState: BallState): { newState: BallState, result: { event: 'BOUNCE' | 'NET' | 'OUT' | 'NONE', side: number, bouncePos?: Vector3 } } {
+        const newState = this.calculateNextFrameState(currentState);
+        const result = this.collisionCheck(currentState.position);
         if (result.event === 'BOUNCE') {
-            this.position.copy(result.bouncePos!);
-            this.velocity.z *= -CONST.TABLE_E;
+            newState.position.copy(result.bouncePos!);
+            newState.velocity.z *= -CONST.TABLE_E;
         }
-        return result;
+        return { newState, result };
     }
 
     public hit(v: Vector3, spin: Vector2, player: any): boolean {
