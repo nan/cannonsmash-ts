@@ -220,53 +220,50 @@ export class Player {
     }
 
     private findServeVelocity(ball: Ball): Vector3 | null {
-        console.log("Starting serve velocity search...");
+        console.log("Starting serve velocity search (brute-force)...");
         const startPos = ball.position.clone();
 
-        const opponentSide = -this.side;
-        const targets = [
-            this.target,
-            new Vector3(0, opponentSide * 0.7, CONST.TABLEHEIGHT),
-            new Vector3(this.target.x * 0.5, opponentSide * 0.5, CONST.TABLEHEIGHT),
-        ];
+        // Brute-force search for a valid serve velocity
+        for (let vz = 2; vz < 8; vz += 0.5) { // Vertical velocity
+            for (let vy = this.side * 5; this.side * vy < this.side * 12; vy += this.side * 0.5) { // Forward velocity
+                for (let vx = -4; vx < 4; vx += 0.5) { // Sideways velocity
+                    const v = new Vector3(vx, vy, vz);
 
-        for (const target of targets) {
-            for (let time = 0.2; time < 1.5; time += 0.02) {
-                const v = this.calculateVelocityForTarget(startPos, target, time, this.spin.y);
-                if (!v || v.length() === 0) continue;
+                    const tempBall = ball.clone();
+                    let tempState = { position: startPos.clone(), velocity: v, spin: this.spin.clone() };
+                    tempBall.warp(tempState.position, tempState.velocity, tempState.spin, 6);
 
-                const tempBall = ball.clone();
-                let tempState = { position: startPos, velocity: v, spin: this.spin };
-                tempBall.warp(tempState.position, tempState.velocity, tempState.spin, 6);
+                    let firstBounce: any = null;
+                    let secondBounce: any = null;
+                    let hasHitNet = false;
 
-                let firstBounce: any = null;
-                let secondBounce: any = null;
-                let hasHitNet = false;
+                    for (let i = 0; i < 250; i++) { // Max simulation frames
+                        const sim = tempBall.simulateFrame(tempState);
+                        tempState = sim.newState;
+                        const result = sim.result;
 
-                for (let i = 0; i < 250; i++) {
-                    const sim = tempBall.simulateFrame(tempState);
-                    tempState = sim.newState;
-                    const result = sim.result;
-
-                    if (result.event === 'NET' || result.event === 'OUT') {
-                        hasHitNet = true;
-                        break;
-                    }
-                    if (result.event === 'BOUNCE') {
-                        if (!firstBounce) firstBounce = result;
-                        else {
-                            secondBounce = result;
+                        if (result.event === 'NET' || result.event === 'OUT') {
+                            hasHitNet = true;
                             break;
                         }
+                        if (result.event === 'BOUNCE') {
+                            if (!firstBounce) {
+                                firstBounce = result;
+                            } else {
+                                secondBounce = result;
+                                break;
+                            }
+                        }
                     }
-                }
 
-                if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
-                    console.log(`Found valid serve velocity: V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}) for target=(${target.x.toFixed(2)}, ${target.y.toFixed(2)})`);
-                    return v;
+                    if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
+                        console.log(`Found valid serve velocity: V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)})`);
+                        return v;
+                    }
                 }
             }
         }
+
         console.error("No valid serve velocity found after extensive searching.");
         return null;
     }

@@ -6,17 +6,19 @@ export class ComController implements Controller {
     public update(player: Player, ball: Ball): void {
         // Simple AI logic
 
-        // 1. Move to intercept the ball on the X-axis
-        const targetX = ball.position.x;
-        const currentX = player.position.x;
-        const dx = targetX - currentX;
+        // 1. Move to intercept the ball
+        const targetPos = ball.position;
+        const currentPos = player.position;
+        const diff = targetPos.clone().sub(currentPos);
 
         // A simple proportional controller to move the player
-        player.velocity.x = dx * 1.5; // The factor 1.5 is arbitrary, adjust for difficulty
+        player.velocity.x = diff.x * 1.5;
+        player.velocity.y = diff.y * 0.8; // Move less aggressively on y-axis
 
         // Clamp velocity to a max speed
-        if (Math.abs(player.velocity.x) > player.RUNSPEED) {
-            player.velocity.x = Math.sign(player.velocity.x) * player.RUNSPEED;
+        const speed = player.velocity.length();
+        if (speed > player.RUNSPEED) {
+            player.velocity.multiplyScalar(player.RUNSPEED / speed);
         }
 
         // 2. Decide when to swing
