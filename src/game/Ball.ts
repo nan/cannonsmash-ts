@@ -86,13 +86,23 @@ export class Ball {
     private calculateNextFrameState(currentState: BallState): BallState {
         const { position: oldPosition, velocity: oldVelocity, spin: oldSpin } = currentState;
 
-        // Simplified physics: projectile motion under gravity
+        // Simplified yet more correct physics update
         const newVelocity = oldVelocity.clone();
-        newVelocity.z += CONST.GRAVITY(0) * CONST.TICK; // Apply gravity (spin set to 0)
 
-        const newPosition = oldPosition.clone().addScaledVector(newVelocity, CONST.TICK);
+        // 1. Apply gravity (affects vertical velocity)
+        // Spin is ignored for now by passing 0.
+        newVelocity.z += CONST.GRAVITY(0) * CONST.TICK;
 
-        const newSpin = oldSpin.clone(); // Keep spin for now, but don't use it in calculations
+        // 2. Apply air resistance (drag)
+        const drag = 1.0 - (CONST.PHY * CONST.TICK);
+        newVelocity.multiplyScalar(drag);
+
+        // 3. Update position using the *average* velocity over the tick for better accuracy
+        const avgVelocity = new Vector3().addVectors(oldVelocity, newVelocity).multiplyScalar(0.5);
+        const newPosition = oldPosition.clone().addScaledVector(avgVelocity, CONST.TICK);
+
+        // 4. Spin decay
+        const newSpin = oldSpin.clone().multiplyScalar(0.99);
 
         return { position: newPosition, velocity: newVelocity, spin: newSpin };
     }

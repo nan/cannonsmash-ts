@@ -223,15 +223,15 @@ export class Player {
         console.log("Starting serve velocity search (brute-force)...");
         const startPos = ball.position.clone();
 
-        // Brute-force search for a valid serve velocity (highly targeted for debugging)
-        for (let vz = 4; vz < 6; vz += 0.2) { // Vertical velocity
-            for (let vy = this.side * 6; this.side * vy < this.side * 8; vy += this.side * 0.2) { // Forward velocity
-                const vx = 0; // Sideways velocity (fixed to 0)
-                const v = new Vector3(vx, vy, vz);
+        // Brute-force search for a valid serve velocity
+        for (let vz = 1; vz < 10; vz += 0.5) { // Vertical velocity
+            for (let vy = this.side * 4; this.side * vy < this.side * 15; vy += this.side * 0.5) { // Forward velocity
+                for (let vx = -4; vx < 4; vx += 0.4) { // Sideways velocity
+                    const v = new Vector3(vx, vy, vz);
 
-                const tempBall = ball.clone();
-                let tempState = { position: startPos.clone(), velocity: v, spin: new Vector2(0, 0) }; // Use zero spin
-                tempBall.warp(tempState.position, tempState.velocity, tempState.spin, 6);
+                    const tempBall = ball.clone();
+                    let tempState = { position: startPos.clone(), velocity: v, spin: this.spin.clone() };
+                    tempBall.warp(tempState.position, tempState.velocity, tempState.spin, 6);
 
                 let firstBounce: any = null;
                 let secondBounce: any = null;
@@ -268,7 +268,8 @@ export class Player {
                                         firstBounce.side !== this.side ? `Wrong 1st bounce side (${firstBounce.side})` :
                                         secondBounce.side !== -this.side ? `Wrong 2nd bounce side (${secondBounce.side})` : 'Unknown';
                     }
-                    console.log(`Serve failed for V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}): ${logReason}`);
+                    // console.log(`Serve failed for V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}): ${logReason}`);
+                }
                 }
             }
         }
@@ -284,7 +285,7 @@ export class Player {
             return false;
         }
 
-        this.spin.set(0, 0); // DEBUG: Zero out spin
+        this.spin.set(0, 0.5);
         let v;
 
         if (this.canServe(ball)) {
