@@ -23,7 +23,7 @@ export const BALL_R = 0.019;
 export const TABLE_E = 0.8;
 export const PHY = 0.15;
 
-export const GRAVITY = (spin: number) => 9.8 + spin * 5;
+export const GRAVITY = (spin: number) => -9.8 + spin * 5;
 
 export const TICK = 0.01; // Turn length (in second)
 

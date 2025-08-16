@@ -51,7 +51,7 @@ export class Ball {
         this.velocity.copy(newState.velocity);
         this.spin.copy(newState.spin);
 
-        const result = this.collisionCheck(oldPosition);
+        const result = this.collisionCheck(oldPosition, this.position);
 
         if (result.event === 'BOUNCE') {
             this.position.copy(result.bouncePos!);
@@ -97,13 +97,13 @@ export class Ball {
         return { position: newPosition, velocity: newVelocity, spin: newSpin };
     }
 
-    private collisionCheck(oldPosition: Vector3): { event: 'BOUNCE' | 'NET' | 'OUT' | 'NONE', bouncePos?: Vector3, side: number } {
+    private collisionCheck(oldPosition: Vector3, newPosition: Vector3): { event: 'BOUNCE' | 'NET' | 'OUT' | 'NONE', bouncePos?: Vector3, side: number } {
         let netT = Infinity;
-        if (oldPosition.y * this.position.y <= 0.0) {
-            const timeToNet = Math.abs(oldPosition.y / ((this.position.y - oldPosition.y) / CONST.TICK));
+        if (oldPosition.y * newPosition.y <= 0.0) {
+            const timeToNet = Math.abs(oldPosition.y / ((newPosition.y - oldPosition.y) / CONST.TICK));
             if (timeToNet <= CONST.TICK) {
-                const zAtNet = oldPosition.z + (this.position.z - oldPosition.z) * timeToNet / CONST.TICK;
-                const xAtNet = oldPosition.x + (this.position.x - oldPosition.x) * timeToNet / CONST.TICK;
+                const zAtNet = oldPosition.z + (newPosition.z - oldPosition.z) * timeToNet / CONST.TICK;
+                const xAtNet = oldPosition.x + (newPosition.x - oldPosition.x) * timeToNet / CONST.TICK;
                 if (zAtNet >= CONST.TABLEHEIGHT && zAtNet <= CONST.TABLEHEIGHT + CONST.NETHEIGHT && Math.abs(xAtNet) <= CONST.TABLEWIDTH / 2 + 0.1) {
                     netT = timeToNet;
                 }
@@ -112,11 +112,11 @@ export class Ball {
 
         let tableT = Infinity;
         let bouncePos = new Vector3();
-        if ((oldPosition.z - CONST.TABLEHEIGHT) * (this.position.z - CONST.TABLEHEIGHT) <= 0.0) {
-            const timeToTable = Math.abs((oldPosition.z - CONST.TABLEHEIGHT) / ((this.position.z - oldPosition.z) / CONST.TICK));
+        if ((oldPosition.z - CONST.TABLEHEIGHT) * (newPosition.z - CONST.TABLEHEIGHT) <= 0.0) {
+            const timeToTable = Math.abs((oldPosition.z - CONST.TABLEHEIGHT) / ((newPosition.z - oldPosition.z) / CONST.TICK));
             if (timeToTable <= CONST.TICK) {
-                const yAtTable = oldPosition.y + (this.position.y - oldPosition.y) * timeToTable / CONST.TICK;
-                const xAtTable = oldPosition.x + (this.position.x - oldPosition.x) * timeToTable / CONST.TICK;
+                const yAtTable = oldPosition.y + (newPosition.y - oldPosition.y) * timeToTable / CONST.TICK;
+                const xAtTable = oldPosition.x + (newPosition.x - oldPosition.x) * timeToTable / CONST.TICK;
                 if (Math.abs(yAtTable) <= CONST.TABLELENGTH / 2 && Math.abs(xAtTable) <= CONST.TABLEWIDTH / 2) {
                     tableT = timeToTable;
                     bouncePos.set(xAtTable, yAtTable, CONST.TABLEHEIGHT);
@@ -126,7 +126,7 @@ export class Ball {
 
         if (netT < tableT) return { event: 'NET', side: 0 };
         if (tableT < netT) return { event: 'BOUNCE', side: Math.sign(bouncePos.y), bouncePos: bouncePos };
-        if (Math.abs(this.position.x) > CONST.AREAXSIZE / 2 || Math.abs(this.position.y) > CONST.AREAYSIZE / 2 || this.position.z < 0) {
+        if (Math.abs(newPosition.x) > CONST.AREAXSIZE / 2 || Math.abs(newPosition.y) > CONST.AREAYSIZE / 2 || newPosition.z < 0) {
             return { event: 'OUT', side: 0 };
         }
         return { event: 'NONE', side: 0 };
@@ -134,7 +134,7 @@ export class Ball {
 
     public simulateFrame(currentState: BallState): { newState: BallState, result: { event: 'BOUNCE' | 'NET' | 'OUT' | 'NONE', side: number, bouncePos?: Vector3 } } {
         const newState = this.calculateNextFrameState(currentState);
-        const result = this.collisionCheck(currentState.position);
+        const result = this.collisionCheck(currentState.position, newState.position);
         if (result.event === 'BOUNCE') {
             newState.position.copy(result.bouncePos!);
             newState.velocity.z *= -CONST.TABLE_E;
