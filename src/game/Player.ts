@@ -223,53 +223,52 @@ export class Player {
         console.log("Starting serve velocity search (brute-force)...");
         const startPos = ball.position.clone();
 
-        // Brute-force search for a valid serve velocity
-        for (let vz = 1; vz < 10; vz += 0.5) { // Vertical velocity
-            for (let vy = this.side * 4; this.side * vy < this.side * 15; vy += this.side * 0.5) { // Forward velocity
-                for (let vx = -4; vx < 4; vx += 0.4) { // Sideways velocity
-                    const v = new Vector3(vx, vy, vz);
+        // Brute-force search for a valid serve velocity (highly targeted for debugging)
+        for (let vz = 4; vz < 6; vz += 0.2) { // Vertical velocity
+            for (let vy = this.side * 6; this.side * vy < this.side * 8; vy += this.side * 0.2) { // Forward velocity
+                const vx = 0; // Sideways velocity (fixed to 0)
+                const v = new Vector3(vx, vy, vz);
 
-                    const tempBall = ball.clone();
-                    let tempState = { position: startPos.clone(), velocity: v, spin: this.spin.clone() };
-                    tempBall.warp(tempState.position, tempState.velocity, tempState.spin, 6);
+                const tempBall = ball.clone();
+                let tempState = { position: startPos.clone(), velocity: v, spin: new Vector2(0, 0) }; // Use zero spin
+                tempBall.warp(tempState.position, tempState.velocity, tempState.spin, 6);
 
-                    let firstBounce: any = null;
-                    let secondBounce: any = null;
-                    let hasHitNet = false;
+                let firstBounce: any = null;
+                let secondBounce: any = null;
+                let hasHitNet = false;
 
-                    let logReason = '';
-                    for (let i = 0; i < 250; i++) { // Max simulation frames
-                        const sim = tempBall.simulateFrame(tempState);
-                        tempState = sim.newState;
-                        const result = sim.result;
+                let logReason = '';
+                for (let i = 0; i < 250; i++) { // Max simulation frames
+                    const sim = tempBall.simulateFrame(tempState);
+                    tempState = sim.newState;
+                    const result = sim.result;
 
-                        if (result.event === 'NET' || result.event === 'OUT') {
-                            hasHitNet = true;
-                            logReason = 'Net/Out';
+                    if (result.event === 'NET' || result.event === 'OUT') {
+                        hasHitNet = true;
+                        logReason = 'Net/Out';
+                        break;
+                    }
+                    if (result.event === 'BOUNCE') {
+                        if (!firstBounce) {
+                            firstBounce = result;
+                        } else {
+                            secondBounce = result;
                             break;
                         }
-                        if (result.event === 'BOUNCE') {
-                            if (!firstBounce) {
-                                firstBounce = result;
-                            } else {
-                                secondBounce = result;
-                                break;
-                            }
-                        }
                     }
+                }
 
-                    if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
-                        console.log(`Found valid serve velocity: V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)})`);
-                        return v;
-                    } else {
-                        if (!logReason) {
-                             logReason = !firstBounce ? 'No bounce' :
-                                           !secondBounce ? 'Only one bounce' :
-                                           firstBounce.side !== this.side ? `Wrong 1st bounce side (${firstBounce.side})` :
-                                           secondBounce.side !== -this.side ? `Wrong 2nd bounce side (${secondBounce.side})` : 'Unknown';
-                        }
-                        // console.log(`Serve failed for V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}): ${logReason}`);
+                if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
+                    console.log(`Found valid serve velocity: V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)})`);
+                    return v;
+                } else {
+                    if (!logReason) {
+                            logReason = !firstBounce ? 'No bounce' :
+                                        !secondBounce ? 'Only one bounce' :
+                                        firstBounce.side !== this.side ? `Wrong 1st bounce side (${firstBounce.side})` :
+                                        secondBounce.side !== -this.side ? `Wrong 2nd bounce side (${secondBounce.side})` : 'Unknown';
                     }
+                    console.log(`Serve failed for V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}): ${logReason}`);
                 }
             }
         }
@@ -285,7 +284,7 @@ export class Player {
             return false;
         }
 
-        this.spin.set(0, 0.5);
+        this.spin.set(0, 0); // DEBUG: Zero out spin
         let v;
 
         if (this.canServe(ball)) {
