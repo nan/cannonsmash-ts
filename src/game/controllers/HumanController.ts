@@ -78,7 +78,7 @@ export class HumanController implements Controller {
                     // Set power and spin for the serve.
                     // This is still simplified. A full implementation would use mouse
                     // movement and timing to determine these values.
-                    player.power = 8;
+                    player.power = 5;
                     player.spin.set(0, 0.5); // Some topspin
 
                     player.startSwing(player.power, ball);
