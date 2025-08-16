@@ -127,6 +127,10 @@ export class Player {
         const prevV = this.velocity.clone();
         const currentSwing = Player.swingTypes.get(this.swingType);
 
+        if (this.swing > 0) {
+            console.log(`Player swing: frame=${this.swing}, type=${this.swingType}`);
+        }
+
         if (!currentSwing) {
             this.swing = 0;
             return false;
@@ -180,81 +184,6 @@ export class Player {
         return true;
     }
 
-    private calculateVelocityForTarget(startPos: Vector3, targetPos: Vector3, time: number, spinY: number): Vector3 {
-        const g = CONST.GRAVITY(spinY);
-        const k = CONST.PHY;
-        const delta = new Vector3().subVectors(targetPos, startPos);
-        const commonFactorH = k / (1 - Math.exp(-k * time));
-        const vx = delta.x * commonFactorH;
-        const vy = delta.y * commonFactorH;
-        const vz = k * ( (delta.z + g * time / k) / (1 - Math.exp(-k * time)) - (g / (k * k)) );
-        if (!isFinite(vx) || !isFinite(vy) || !isFinite(vz)) return new Vector3(0,0,0);
-        console.log(`Calculated V0 for time=${time.toFixed(3)}s, delta=(${delta.x.toFixed(2)}, ${delta.y.toFixed(2)}, ${delta.z.toFixed(2)}): V0=(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)})`);
-        return new Vector3(vx, vy, vz);
-    }
-
-    private findRallyVelocity(ball: Ball): Vector3 | null {
-        const timesToTry = [0.25, 0.3, 0.35, 0.4, 0.2];
-        for (const time of timesToTry) {
-            const v = this.calculateVelocityForTarget(ball.position, this.target, time, this.spin.y);
-            if (v && v.length() > 0) {
-                const tempBall = ball.clone();
-                tempBall.warp(ball.position, v, this.spin, this.status);
-                for (let i = 0; i < 100; i++) {
-                    const result = tempBall.simulateFrame();
-                    if (result.event === 'BOUNCE' && result.side === -this.side) return v;
-                    if (result.event === 'NET' || result.event === 'OUT') break;
-                }
-            }
-        }
-        return null;
-    }
-
-    private findServeVelocity(ball: Ball): Vector3 | null {
-        const tempBall = ball.clone();
-        const startPos = ball.position.clone();
-        startPos.z = 1.4;
-
-        const opponentSide = -this.side;
-        const targets = [
-            this.target,
-            new Vector3(0, opponentSide * 0.7, CONST.TABLEHEIGHT),
-            new Vector3(this.target.x * 0.5, opponentSide * 0.5, CONST.TABLEHEIGHT),
-        ];
-
-        for (const target of targets) {
-            for (let time = 0.3; time < 0.8; time += 0.05) {
-                const v = this.calculateVelocityForTarget(startPos, target, time, this.spin.y);
-                if (!v || v.length() === 0) continue;
-
-                tempBall.warp(startPos, v, this.spin, 6);
-                let firstBounce: any = null;
-                let secondBounce: any = null;
-                let hasHitNet = false;
-
-                for (let i = 0; i < 150; i++) {
-                    const result = tempBall.simulateFrame();
-                    if (result.event === 'NET' || result.event === 'OUT') {
-                        hasHitNet = true;
-                        break;
-                    }
-                    if (result.event === 'BOUNCE') {
-                        if (!firstBounce) firstBounce = result;
-                        else {
-                            secondBounce = result;
-                            break;
-                        }
-                    }
-                }
-
-                if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
-                    return v;
-                }
-            }
-        }
-        return null;
-    }
-
     public hitBall(ball: Ball): boolean {
         if (Math.abs(this.position.x - ball.position.x) > 0.8) {
             this.swingError = CONST.SWING_MISS;
@@ -279,6 +208,87 @@ export class Player {
 
         this.spin.set(0, 0);
         return true;
+    }
+
+    private calculateVelocityForTarget(startPos: Vector3, targetPos: Vector3, time: number, spinY: number): Vector3 {
+        const g = CONST.GRAVITY(spinY);
+        const k = CONST.PHY;
+        const delta = new Vector3().subVectors(targetPos, startPos);
+        const commonFactorH = k / (1 - Math.exp(-k * time));
+        const vx = delta.x * commonFactorH;
+        const vy = delta.y * commonFactorH;
+        const vz = k * ( (delta.z + g * time / k) / (1 - Math.exp(-k * time)) - (g / (k * k)) );
+        if (!isFinite(vx) || !isFinite(vy) || !isFinite(vz)) return new Vector3(0,0,0);
+        return new Vector3(vx, vy, vz);
+    }
+
+    private findRallyVelocity(ball: Ball): Vector3 | null {
+        const timesToTry = [0.25, 0.3, 0.35, 0.4, 0.2];
+        for (const time of timesToTry) {
+            const v = this.calculateVelocityForTarget(ball.position, this.target, time, this.spin.y);
+            if (v && v.length() > 0) {
+                const tempBall = ball.clone();
+                tempBall.warp(ball.position, v, this.spin, this.status);
+                for (let i = 0; i < 100; i++) {
+                    const result = tempBall.simulateFrame();
+                    if (result.event === 'BOUNCE' && result.side === -this.side) {
+                        return v;
+                    }
+                    if (result.event === 'NET' || result.event === 'OUT') {
+                        break;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private findServeVelocity(ball: Ball): Vector3 | null {
+        const tempBall = ball.clone();
+        const startPos = ball.position.clone();
+        startPos.z = 1.4;
+
+        const opponentSide = -this.side;
+        const targets = [
+            this.target,
+            new Vector3(0, opponentSide * 0.7, CONST.TABLEHEIGHT),
+            new Vector3(this.target.x * 0.5, opponentSide * 0.5, CONST.TABLEHEIGHT),
+        ];
+
+        for (const target of targets) {
+            for (let vy = 2.0; vy < 12.0; vy += 0.5) {
+                for (let vz = -5.0; vz < 10.0; vz += 0.5) {
+                    const initialVelocity = new Vector3(target.x * 0.3, this.side * vy, vz);
+                    tempBall.warp(startPos.clone(), initialVelocity, this.spin, 6);
+
+                    let firstBounce: any = null;
+                    let secondBounce: any = null;
+                    let hasHitNet = false;
+
+                    for (let i = 0; i < 150; i++) {
+                        const result = tempBall.simulateFrame();
+                        if (result.event === 'NET' || result.event === 'OUT') {
+                            hasHitNet = true;
+                            break;
+                        }
+                        if (result.event === 'BOUNCE') {
+                            if (!firstBounce) firstBounce = result;
+                            else {
+                                secondBounce = result;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
+                        console.log(`Found valid serve velocity: V0=(${initialVelocity.x.toFixed(2)}, ${initialVelocity.y.toFixed(2)}, ${initialVelocity.z.toFixed(2)})`);
+                        return initialVelocity;
+                    }
+                }
+            }
+        }
+        console.error("No valid serve velocity found after extensive searching.");
+        return null;
     }
 
     public addStatus(diff: number) {
