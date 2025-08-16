@@ -86,26 +86,13 @@ export class Ball {
     private calculateNextFrameState(currentState: BallState): BallState {
         const { position: oldPosition, velocity: oldVelocity, spin: oldSpin } = currentState;
 
-        const newVelocity = new Vector3();
-        const newPosition = new Vector3();
-        const newSpin = new Vector2();
+        // Simplified physics: projectile motion under gravity
+        const newVelocity = oldVelocity.clone();
+        newVelocity.z += CONST.GRAVITY(0) * CONST.TICK; // Apply gravity (spin set to 0)
 
-        const rot = oldSpin.x / CONST.PHY - oldSpin.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
-        newVelocity.x = (oldVelocity.x * Math.cos(rot) - oldVelocity.y * Math.sin(rot)) * Math.exp(-CONST.PHY * CONST.TICK);
-        newVelocity.y = (oldVelocity.x * Math.sin(rot) + oldVelocity.y * Math.cos(rot)) * Math.exp(-CONST.PHY * CONST.TICK);
-        newVelocity.z = (oldVelocity.z + CONST.GRAVITY(oldSpin.y) / CONST.PHY) * Math.exp(-CONST.PHY * CONST.TICK) - CONST.GRAVITY(oldSpin.y) / CONST.PHY;
+        const newPosition = oldPosition.clone().addScaledVector(newVelocity, CONST.TICK);
 
-        if (oldSpin.x === 0.0) {
-            newPosition.x = oldPosition.x + oldVelocity.x / CONST.PHY - oldVelocity.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
-            newPosition.y = oldPosition.y + oldVelocity.y / CONST.PHY - oldVelocity.y / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
-        } else {
-            const theta = oldSpin.x / CONST.PHY - oldSpin.x / CONST.PHY * Math.exp(-CONST.PHY * CONST.TICK);
-            newPosition.x = oldVelocity.y / oldSpin.x * Math.cos(theta) - (-oldVelocity.x / oldSpin.x) * Math.sin(theta) + oldPosition.x - oldVelocity.y / oldSpin.x;
-            newPosition.y = oldVelocity.y / oldSpin.x * Math.sin(theta) + (-oldVelocity.x / oldSpin.x) * Math.cos(theta) + oldPosition.y + oldVelocity.x / oldSpin.x;
-        }
-        newPosition.z = (CONST.PHY * oldVelocity.z + CONST.GRAVITY(oldSpin.y)) / (CONST.PHY * CONST.PHY) - (CONST.PHY * oldVelocity.z + CONST.GRAVITY(oldSpin.y)) / (CONST.PHY * CONST.PHY) * Math.exp(-CONST.PHY * CONST.TICK) - CONST.GRAVITY(oldSpin.y) / CONST.PHY * CONST.TICK + oldPosition.z;
-        newSpin.x = oldSpin.x * Math.exp(-CONST.PHY * CONST.TICK);
-        newSpin.y = oldSpin.y;
+        const newSpin = oldSpin.clone(); // Keep spin for now, but don't use it in calculations
 
         return { position: newPosition, velocity: newVelocity, spin: newSpin };
     }
