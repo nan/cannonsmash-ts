@@ -127,6 +127,10 @@ export class Player {
         const prevV = this.velocity.clone();
         const currentSwing = Player.swingTypes.get(this.swingType);
 
+        if (this.swing > 0) {
+            console.log(`Player swing: frame=${this.swing}, type=${this.swingType}`);
+        }
+
         if (!currentSwing) {
             this.swing = 0;
             return false;
@@ -251,14 +255,17 @@ export class Player {
                 }
 
                 if (!hasHitNet && firstBounce && secondBounce && firstBounce.side === this.side && secondBounce.side === -this.side) {
+                    console.log(`Found valid serve velocity: V0=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)})`);
                     return v;
                 }
             }
         }
+        console.error("No valid serve velocity found after extensive searching.");
         return null;
     }
 
     public hitBall(ball: Ball): boolean {
+        console.log(`hitBall called! swingType: ${this.swingType}`);
         if (Math.abs(this.position.x - ball.position.x) > 0.8) {
             this.swingError = CONST.SWING_MISS;
             return false;

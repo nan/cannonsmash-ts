@@ -24,6 +24,9 @@ export class Ball {
     }
 
     public move(): boolean {
+        if (this.status >= 0) {
+            console.log(`Ball[${this.status}]: pos=(${this.position.x.toFixed(2)}, ${this.position.y.toFixed(2)}, ${this.position.z.toFixed(2)}) vel=(${this.velocity.x.toFixed(2)}, ${this.velocity.y.toFixed(2)}, ${this.velocity.z.toFixed(2)})`);
+        }
         if (this.status < 0) {
             this.status--;
         }
