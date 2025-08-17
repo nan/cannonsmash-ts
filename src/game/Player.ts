@@ -125,21 +125,6 @@ export class Player {
 
     public move(ball: Ball, /* keyState, etc. */): boolean {
         const prevV = this.velocity.clone();
-
-        // Auto-serve logic
-        if (this.canServe(ball) && this.swing === 0) {
-            // EXPERIMENTAL FIX: The original calculation for idealHitHeight was likely incorrect,
-            // causing the ball to be hit too high. This uses a fixed height for now.
-            // A more accurate solution would require porting the original C++ physics logic.
-            const idealHitHeight = 1.1;
-            // Check if ball is falling and is near the ideal hit height
-            if (ball.velocity.z < 0 && Math.abs(ball.position.z - idealHitHeight) < 0.1) {
-                this.power = 5; // Use the adjusted default power
-                this.spin.set(0, 0.5); // Default topspin
-                this.startSwing(this.power, ball);
-            }
-        }
-
         const currentSwing = Player.swingTypes.get(this.swingType);
 
         if (!currentSwing) {
@@ -152,8 +137,16 @@ export class Player {
             if (this.swing > currentSwing.swingEnd && this.afterSwing > 0) {
                 this.afterSwing--;
             } else {
-                // Simplified swing progression
-                this.swing++;
+                // Correct swing progression logic from C++
+                if (this.canServe(ball)) {
+                    // For serves, only advance the swing if the ball is falling.
+                    if (ball.velocity.z < 0) {
+                        this.swing++;
+                    }
+                } else {
+                    // For rallies, advance the swing normally.
+                    this.swing++;
+                }
             }
         }
 
@@ -203,14 +196,10 @@ export class Player {
         const v = new Vector3();
 
         if (this.canServe(ball) && Math.abs(this.position.x - ball.position.x) < 0.6) {
-            // Serve Hit - aim towards the player's target using player's power and spin
-            // These values will be set by the controller before calling startSwing.
-            const targetPos = new Vector3(this.target.x, this.target.y, 0);
-            const speed = this.power * 2.5; // Convert power (e.g., 0-10) to a velocity scalar
-            v.subVectors(targetPos, ball.position).normalize().multiplyScalar(speed);
-            v.z = 2; // Give it some upward velocity, overriding the Z from normalization
-
-            // The player's spin property should be set by the controller.
+            // Use the ported TargetToVS function for accurate serve trajectory
+            const level = 0.9; // Simplified level from C++ code
+            this.spin.set(0, 0.5); // Default topspin for serve
+            ball.targetToVS(this.target, level, this.spin, v);
             ball.hit(v, this.spin, this);
             this.swingError = CONST.SWING_PERFECT;
         }
@@ -303,5 +292,6 @@ export class Player {
 declare module './Ball' {
     interface Ball {
         targetToV(target: Vector2, level: number, spin: Vector2, v: Vector3, vMin: number, vMax: number): boolean;
+        targetToVS(target: Vector2, level: number, spin: Vector2, v: Vector3): boolean;
     }
 }
