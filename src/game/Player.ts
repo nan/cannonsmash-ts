@@ -125,6 +125,21 @@ export class Player {
 
     public move(ball: Ball, /* keyState, etc. */): boolean {
         const prevV = this.velocity.clone();
+
+        // Auto-serve logic
+        if (this.canServe(ball) && this.swing === 0) {
+            const currentSwing = Player.swingTypes.get(this.swingType);
+            if (currentSwing) {
+                const idealHitHeight = this.position.z + currentSwing.hitY;
+                // Check if ball is falling and is near the ideal hit height
+                if (ball.velocity.z < 0 && Math.abs(ball.position.z - idealHitHeight) < 0.1) {
+                    this.power = 5; // Use the adjusted default power
+                    this.spin.set(0, 0.5); // Default topspin
+                    this.startSwing(this.power, ball);
+                }
+            }
+        }
+
         const currentSwing = Player.swingTypes.get(this.swingType);
 
         if (!currentSwing) {
