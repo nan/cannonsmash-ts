@@ -128,15 +128,15 @@ export class Player {
 
         // Auto-serve logic
         if (this.canServe(ball) && this.swing === 0) {
-            const currentSwing = Player.swingTypes.get(this.swingType);
-            if (currentSwing) {
-                const idealHitHeight = this.position.z + currentSwing.hitY;
-                // Check if ball is falling and is near the ideal hit height
-                if (ball.velocity.z < 0 && Math.abs(ball.position.z - idealHitHeight) < 0.1) {
-                    this.power = 5; // Use the adjusted default power
-                    this.spin.set(0, 0.5); // Default topspin
-                    this.startSwing(this.power, ball);
-                }
+            // EXPERIMENTAL FIX: The original calculation for idealHitHeight was likely incorrect,
+            // causing the ball to be hit too high. This uses a fixed height for now.
+            // A more accurate solution would require porting the original C++ physics logic.
+            const idealHitHeight = 1.1;
+            // Check if ball is falling and is near the ideal hit height
+            if (ball.velocity.z < 0 && Math.abs(ball.position.z - idealHitHeight) < 0.1) {
+                this.power = 5; // Use the adjusted default power
+                this.spin.set(0, 0.5); // Default topspin
+                this.startSwing(this.power, ball);
             }
         }
 
